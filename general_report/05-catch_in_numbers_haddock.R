@@ -288,11 +288,13 @@ catch <- rep(0,length(fj2016allirsynaflokkar1reg))
 for(i in 1:length(fj2016allirsynaflokkar1reg)) 
   catch[[i]] <- sum(fj2016allirsynaflokkar1reg[[i]]$BiomassPerAldur)
 catch <- data.frame(index=names(fj2016allirsynaflokkar1reg),catch=round(catch/1000))
-x <- geo::apply.shrink(rep(1,nrow(st2016kv)),st2016kv$index,sum,names=c("index","fj.aged"))
-x1 <- geo::apply.shrink(rep(1,nrow(st2016.kvarnad)),st2016.kvarnad$index,sum,names=c("index","fj.othsamp"))
-catch <- fjolst:::join(catch,x,"index")
-catch <- fjolst:::join(catch,x1,"index")
-catch$index <- as.character(catch$index)
+
+# I don't think this is used because st2016kv and st2016.kvarnad are commented out earlier
+#x <- geo::apply.shrink(rep(1,nrow(st2016kv)),st2016kv$index,sum,names=c("index","fj.aged"))
+#x1 <- geo::apply.shrink(rep(1,nrow(st2016.kvarnad)),st2016.kvarnad$index,sum,names=c("index","fj.othsamp"))
+#catch <- fjolst:::join(catch,x,"index")
+#catch <- fjolst:::join(catch,x1,"index")
+#catch$index <- as.character(catch$index)
 
 
 tmp <- read.table("/home/hoski/Tac2016/02/Ass/Adapt/PrognosisBaediroll/resultsbyyearandage",header=T)
