@@ -7,7 +7,7 @@ library(Logbooks)
 # The intermediate way - "soon" to be replaced by fishvise/pax
 ##devtools::install_github("fishvice/husky")
 library(husky)
-
+## blq blq 
 gear1 <- c("v9","v5","v6")
 gear <- gearlist[gearlist$geartext %in% gear1,]
 
