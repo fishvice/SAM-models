@@ -7,6 +7,11 @@
 ###----VARIABLE SETTINGS FOR PRODUCING ALK----###
 #these are inputs to the function below used to create keys within each defined grouping
 
+# all_areas is all possible areas, 
+# focal_areas is the full region for consideration for the species
+focal_areas <- 101:108 #for haddock
+all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
+
 #Basic information for ALK - age and min length possible for that age
 data.frame(age=1:14,minlength=15+2.5*(1:14)) %>% 
   dbWriteTable(mar,paste0('age_minlength_',Species),.,overwrite=TRUE)
@@ -14,7 +19,7 @@ data.frame(age=1:14,minlength=15+2.5*(1:14)) %>%
 #Aggregations needed by which ALK will be specific
 month_group <-data.frame(man = 1:12, man_group = 't1')
 GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
-area_group <- data.frame(area = tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist, area_group = 'r1')
+area_group <- data.frame(area = all_areas, area_group = 'r1')
 #strata_group <- data.frame(strata = NA, strata_group = NA)#- to be implemented later
 #above currently not implemented because strata not joined with catch synis_id
 #but would be nice to do this in the future
@@ -39,7 +44,7 @@ st <-
   rename(vf = geartext) %>% 
   inner_join(tbl(mar,'reitmapping_original')) %>% 
   rename(area = DIVISION) %>% 
-  filter(area %in% 101:108) %>% # IS THIS NECESSARY FOR ALL SPECIES?
+  filter(area %in% focal_areas) %>% 
   rename(synis.id=synis_id)
 
 # all otolith info that can be matched with st
@@ -90,7 +95,7 @@ catch <-
   rename(vf = geartext) %>% 
   inner_join(tbl(mar,'reitmapping')) %>% 
   rename(area = DIVISION) %>% 
-  filter(area %in% 101:108) #%>% # IS THIS NECESSARY FOR ALL SPECIES?
+  filter(area %in% focal_areas) #%>% 
 
 #.... by gear and compared with landings
 sc <- 
