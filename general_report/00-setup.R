@@ -18,6 +18,7 @@ library(tidyverse)
 library(mar)
 library(purrrlyr)
 library(dbplyr)
+library(patchwork)
 
 mar <- connect_mar()
 
@@ -25,11 +26,24 @@ mar <- connect_mar()
 # Variable stuff
 
 tyr <- 2018
-Synaflokkur <- c(30,35)
-Tognumer <- c(1:39, NA)
-Species <- 9                    # Select a species
+Synaflokkur <- c(30,35)         #for indices
+Tognumer <- list(1:39, 1:75)       #ARE THESE RIGHT?
+Species <- 2                    # Select a species
+heiti <- 
+  lesa_tegundir(mar) %>% 
+  filter(tegund==Species) %>% 
+  select(heiti) %>% collect() %>% 
+  unlist
+
 Length.min <- 5                   # Minimum length for indices calculation
 Length.max <- 500                 # Maximum length for indices calculation
+
+#for script 03-indices4plot.R
+#cutoffs for indices in the 4 corners of the 4-plot
+#this is coded for looping over multiple species
+cutoffs_list<-NULL
+cutoffs_list[[Species]]<-list(total = c(5,500), juv = c(30,50), B40 = c(40,500), B60=c(60,500))
+cutoffs<-cutoffs_list[[Species]] 
 
 
 # ------------------------------------------------------------------------------
@@ -40,16 +54,11 @@ std.width     <- 17 / 1852     # Standard sweep width in nautical miles
 
 min.towlength <- 2             # Minimum "acceptable" towlength
 max.towlength <- 8             # Maximum "acceptable" towlength
-heiti <- 
-  lesa_tegundir(mar) %>% 
-  filter(tegund==Species) %>% 
-  select(heiti) %>% collect() %>% 
-  unlist
 
 # ------------------------------------------------------------------------------
 ###----TOTAL CATCH----###
 
-#NOT WORKING not sure why
+#NOT WORKING not sure why - but not necessary -replaced with fiskifelag_oslaegt()
 #Get old catch data
 # bind_rows(
 #   list.files('/net/hafkaldi/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = '^[0-9]+',full.names = TRUE) %>% 
@@ -71,6 +80,8 @@ heiti <-
 #   dbWriteTable(mar,'landed_catch_pre94',.)
 #attach("/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
 
+#add code here that was to get old data
+
 #these only need to be run once then can be commented out
 dbRemoveTable(mar,'husky_gearlist')
 #dbRemoveTable(mar,'reitmapping_original')
@@ -78,7 +89,6 @@ dbRemoveTable(mar,'OLDSTRATAAREA')
 dbRemoveTable(mar,'NEWSTRATAAREA')
 dbRemoveTable(mar,'SMBSTATIONSSTRATA')
 dbRemoveTable(mar,'SMHSTATIONSSTRATA')
-dbRemoveTable(mar,'raw_index_calc')
 
 dbRemoveTable(mar,paste0(heiti,'_catch'))
 mar::afli_afli(mar) %>% 

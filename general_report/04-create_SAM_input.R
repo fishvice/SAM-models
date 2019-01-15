@@ -1,23 +1,4 @@
-#install.packages('TMB', type = 'source')
-library(stockassessment)
-library(tidyverse)
 
-## let's read in cod
-
-tmp_fun <- function(x){
-  
-  x %>% 
-    mutate_all(~ifelse(is.na(.),-1,.)) %>%  
-    filter(Year < 2018)->x
-  
-  x %>% 
-    select(-Year) %>% 
-    as.matrix() -> mat
-  
-  rownames(mat) <- x$Year
-  
-  mat
-}
 
 
 ## Catch at age 
@@ -27,7 +8,8 @@ cn <-
   ## append missing ages with nominal catches
   cbind(`1`=0.001,`2`=0.001,.)
 
-## Catch weight at age 
+
+## Catch weight at age - are these individual or total?
 cw <- read_csv('https://data.hafro.is/assmt/2018/cod/catch_weights.csv')%>% 
   tmp_fun() %>% 
   cbind(`1`=0,`2`=0,.) %>% 
@@ -44,6 +26,7 @@ attributes(smb)$time <- c(0.15,0.2)
 smh <- read_csv('https://data.hafro.is/assmt/2018/cod/smh.csv')  %>% 
   tmp_fun()
 attributes(smh)$time <- c(0.7,0.8)
+
 
 
 ## Stock weights

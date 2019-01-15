@@ -8,29 +8,44 @@
 #these are inputs to the function below used to create keys within each defined grouping
 
 # all_areas is all possible areas, 
-# focal_areas is the full region for consideration for the species
-focal_areas <- 101:108 #for haddock
+# global_areas is the full region for consideration for the species
+global_areas <- 101:108 #for haddock
 all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
 
 #Basic information for ALK - age and min length possible for that age
 data.frame(age=1:14,minlength=15+2.5*(1:14)) %>% 
   dbWriteTable(mar,paste0('age_minlength_',Species),.,overwrite=TRUE)
 
+#done for haddock
 #Aggregations needed by which ALK will be specific
-month_group <-data.frame(man = 1:12, man_group = 't1')
+month_group <-data.frame(month = 1:12, month_group = c(rep('t1',5),rep('t2',7)))
 GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
-area_group <- data.frame(area = all_areas, area_group = 'r1')
+area_group <- data.frame(area = all_areas) %>% mutate(area_group = ifelse(area %in% 102:105, 'r1', 'r2'))
 #strata_group <- data.frame(strata = NA, strata_group = NA)#- to be implemented later
 #above currently not implemented because strata not joined with catch synis_id
 #but would be nice to do this in the future
-vf_group <- data.frame(vf = tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist, 
-                      vf_group = tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist)
-#synaflokkur_group <- #NOT IMPLEMENTED YET - because saw an attempt based on a subset synaflokkur = c(1,2,4,8)
+vf_group <- data.frame(vf = c('v3035',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist), 
+                      vf_group = c('v3035',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist))
+#best to always keep s1 refer to synaflokkur 30 and 35; s2 refer to everything else
+synaflokkur_group <- data.frame(synaflokkur = lesa_stodvar(mar) %>% filter(ar == tyr) %>% select(synaflokkur) %>% distinct %>% collect(n=Inf)) %>% 
+                      mutate(synaflokkur_group = ifelse(synaflokkur %in% c(30,35), 's1', 's2'))
+#NOT IMPLEMENTED YET - because saw an attempt based on a subset synaflokkur = c(1,2,4,8)
 #strata_group <- #NOT IMPLEMENTED YET - because it may be handy at some point to match catches to strata?
 
 #Condition matrix to translate from weights. This needs to be as specific as the groups above are defined to.
-cond_mat<-data.frame(condition = 0.00885, power = 3.02857, man_group = 'm1', GRIDCELL_group = 'g1', area_group = 'a1', vf_group = vf_group$vf_group)
+cond_group<-expand.grid(condition = 0.00885, 
+                      power = 3.02857, 
+                      month_group = c('t1','t2'), 
+                      GRIDCELL_group = 'g1', 
+                      area_group = c('r1','r2'), 
+                      vf_group = unique(vf_group$vf_group),
+                      synaflokkur_group = unique(synaflokkur_group$synaflokkur_group)) %>% 
+  filter((synaflokkur_group == 's1' & vf_group == 'v3035') | (synaflokkur_group != 's1' & vf_group != 'v3035') )
 
+#month_group and synaflokkur_group not included in ref_group because time must be same as ind under consideration
+ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
+                  area_group = 'r1',
+                  vf_group = unique(vf_group$vf_group))
 
 # ------------------------------------------------------------------------------
 ###----Gather catch, age, length data----###
@@ -40,12 +55,15 @@ st <-
   lesa_stodvar(mar) %>% 
   mutate(GRIDCELL = 10*reitur + smareitur) %>% 
   filter(ar == tyr) %>% 
-  inner_join(tbl(mar,'husky_gearlist')) %>% 
+  #inner_join(tbl(mar,'husky_gearlist')) %>% #AT THIS STEP SURVEY DATA ARE REMOVED???
+  left_join(tbl(mar,'husky_gearlist')) %>%  
   rename(vf = geartext) %>% 
+  mutate(vf = ifelse(synaflokkur %in% c(30,35), 'v3035', vf)) %>% 
   inner_join(tbl(mar,'reitmapping_original')) %>% 
   rename(area = DIVISION) %>% 
-  filter(area %in% focal_areas) %>% 
+  filter(area %in% global_areas) %>% 
   rename(synis.id=synis_id)
+
 
 # all otolith info that can be matched with st
 kv <- 
@@ -95,7 +113,7 @@ catch <-
   rename(vf = geartext) %>% 
   inner_join(tbl(mar,'reitmapping')) %>% 
   rename(area = DIVISION) %>% 
-  filter(area %in% focal_areas) #%>% 
+  filter(area %in% global_areas) #%>% 
 
 #.... by gear and compared with landings
 sc <- 
@@ -109,6 +127,7 @@ commcatch <-
   catch %>% 
   left_join(sc) %>% 
   mutate(afli = afli*landings/catch) %>% #discrepancy correction
+  mutate(synaflokkur_group = 's2') %>% # 'commercial' synaflokkur - helps with later groupings - 
   group_by(vf, man) %>% 
   filter(!is.na(afli)) %>% 
   mutate(catch = afli) %>% 
@@ -117,13 +136,14 @@ commcatch <-
 #... and summarized by vf, time, reg, for viewing purposes
 commcatch_groupings<-
   commcatch %>% 
+  rename(month = man) %>% 
   left_join(month_group) %>% 
   left_join(GRIDCELL_group) %>% 
   left_join(area_group) %>% 
   left_join(vf_group) %>% 
-  filter(!is.na(man_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA') %>%       
+  filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA', !is.na(vf_group)) %>%       
   ungroup() %>% 
-  unite(index,c(vf_group,area_group,man_group,GRIDCELL_group),sep = '',remove = FALSE) %>% 
+  unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group, vf_group),sep = '',remove = FALSE) %>% 
   group_by(index) %>% 
   summarise(catch = sum(catch,na.rm=TRUE))
   
@@ -138,16 +158,11 @@ totcatch <-
   collect(n=Inf) %>% 
   .$landings
 
+#passed globally into function
 st_c <- st %>% collect(n=Inf)   
 kv_c <- kv %>% collect(n=Inf)
 le_c <- le %>% collect(n=Inf)  
 
-
-#this should be redundant
-# tmp <- 
-#   st_c %>% 
-#   filter(synis.id %in% c(le_c$synis.id,kv_c$synis.id))
-## Southern area has a small weight
 
 # ------------------------------------------------------------------------------
 ###----Define calc_all function to use data defined above----###
@@ -159,54 +174,49 @@ le_c <- le %>% collect(n=Inf)
 #putting NA in the group column excludes the corresponding data
 calc_all <- function(ind, 
                      #ind refers to the name of one of many specific combos of man/GRIDCELL/area/vf combinations that are made by later arguments
-                     age_minlength = tbl(mar,paste0('age_minlength_',Species)) %>% collect(n=Inf) ,
-                     month_group = data.frame(man = 1:12, 
-                                            man_group = 't1'), 
+ ###---These '_group' arguments define groupings by which each ALK and distribution should be split
+                     month_group = data.frame(month = 1:12, 
+                                            month_group = 't1'), 
                      GRIDCELL_group = data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, 
                                                  GRIDCELL_group = 'g1'),
                      area_group = data.frame(area = tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist, 
                                              area_group = 'r1'),
-                     #synaflokkur_group = data.frame(synaflokkur = NA, synaflokkur_group),
+                     synaflokkur_group = data.frame(synaflokkur = st %>% select(synaflokkur) %>% distinct %>% collect(n=Inf)) %>% mutate(synaflokkur_group = ifelse(synaflokkur %in% c(30,35), 's1', 's2')),
                      #strata_group = data.frame(strata = NA, strata_group = NA), 
                      #above currently not implemented but would be nice to do this in the future
-                     vf_group = data.frame(vf = tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist, 
-                                           vf_group = tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist),
-                     cond_group = data.frame(condition = 0.00885, 
-                                             power = 3.02857, 
-                                             man_group = 't1', 
-                                             GRIDCELL_group = 'g1', 
-                                             area_group = 'r1', 
-                                             vf_group = vf_group$vf_group),
-                     #above defines the length-weight relationship within each grouping
-                     ref_group = list(),
+                    vf_group = data.frame(vf = c('v3035',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist), 
+                                           vf_group = c('v3035',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist)),
+ ###----cond_group defines the length-weight relationship within each grouping, so must be available for all groupings
+                    cond_group = expand.grid(condition = 0, 
+                                             power = 3, 
+                                             month_group = unique(month_group$month_group), 
+                                             GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group), 
+                                             area_group = unique(area_group$area_group), 
+                                             vf_group = unique(vf_group$vf_group),
+                                             synaflokkur_group = unique(synaflokkur_group$synaflokkur_group)) %>% 
+                    #synaflokkur s1, if based on synaflokkur 30 and 35, should be exclusive of vf_group 'v3035' to keep survey and catch data separate
+                    filter((synaflokkur_group == 's1' & vf_group == 'v3035') | (synaflokkur_group != 's1' & vf_group != 'v3035') ),
+ ###---ref_group should be a named list that defines which grouping should be the 'reference'. 
+        #It defines the reference group used that is the best source of data for replacing data whe there are minimal data
+        #month_group and synaflokkur_group not included in ref_group because time must be same as ind under consideration
+                  ref_group = list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
+                                area_group = unique(area_group),
+                                vf_group = unique(vf_group$vf_group)),
+ ###---these arguments are needed for creating ALK
+                     age_minlength = tbl(mar,paste0('age_minlength_',Species)) %>% collect(n=Inf) ,
                      ALK_wts = c(0.001, 0.01, 1)
-                     #above defines the reference group used that is the best source of data for replacing data whe there are minimal data
                       ){
 
   if(purrr:::map( list(month_group, GRIDCELL_group, area_group, vf_group, cond_group), 
          function(x){!is.data.frame(x)} ) %>% 
      unlist %>% 
-     any){print('Warning: group arguments must be data frames with 2 columns, first column named by what precedes the underscore in the argument name, second column with the whole argument name (e.g., man_group = data.frame(man = NA, man_group = NA))')}
-      
-    #for haddock, the ref argument should be ref = list(area = 102:105, man = something) 
-    # tmpa  <- 
-    #     tmp %>% 
-    #     filter(area %in% 102:105, 
-    #            man %in% per)
-  
-  #perhaps there's a better way to do this bit below
-  ref <- list(man = 1:12, 
-                   GRIDCELLGRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, 
-                   area = tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist, 
-                   vf = tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist)
+     any){print('Warning: group arguments must be data frames with 2 columns, first column named by what precedes the underscore in the argument name, second column with the whole argument name (e.g., month_group = data.frame(month = NA, month_group = NA))')}
 
-  #convert from default all possibilities to a narrower range for the reference group definition
-  if(length(ref_group) > 0){
-    for(i in 1:length(ref_group)){
-      ref[[names(ref_group)[i]]] <- ref_group[[i]]
-    }
-  }
- 
+  if(any(nchar(unique(c(as.character(month_group$month_group), as.character(synaflokkur_group$synaflokkur_group))))>2)){
+    print('Warning: month_group and synaflokkur_group names must be no longer than 2 characters')
+  }              
+
+  ###---- Begin with 'global' data defined external to function:
   #apply ALK weight to the all-data scenario
   kv_c<-
     kv_c %>% 
@@ -218,15 +228,19 @@ calc_all <- function(ind,
   #reference stations
     st_ref <- 
       st_c %>% 
+      rename(month = man) %>% 
       left_join(month_group) %>% 
       left_join(GRIDCELL_group) %>% 
       left_join(area_group) %>% 
       left_join(vf_group) %>% 
-      filter(!is.na(man_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA',
-             man_group %in% ref$man_group, GRIDCELL_group %in% ref$GRIDCELL_group, 
-             area_group %in% ref$area_group, vf %in%vf_group) %>%       
+      left_join(synaflokkur_group) %>%
       ungroup() %>% 
-      unite(index,c(vf_group,area_group,man_group,GRIDCELL_group),sep = '',remove = FALSE) 
+      unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>% 
+      filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group),
+             month_group == str_sub(ind,start=1,end=2), synaflokkur_group == str_sub(ind,start=3,end=4), GRIDCELL_group %in% ref_group$GRIDCELL_group, 
+             area_group %in% ref_group$area_group, vf_group %in% ref_group$vf_group)
+  
+    if(dim(st_ref)[1] < 10){print(paste0('Warning: n of reference group for ', ind, ' is < 10'))} 
     
     #age data for the reference group matching reference stations
     kv_ref <- 
@@ -241,35 +255,33 @@ calc_all <- function(ind,
     #catch for the ind grouping - used as a weight when combining catch data
     afli_ind <- 
       commcatch %>% 
+      rename(month = man) %>% 
       left_join(month_group) %>% 
       left_join(GRIDCELL_group) %>% 
       left_join(area_group) %>% 
       left_join(vf_group) %>% 
-      filter(!is.na(man_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA') %>% 
       ungroup() %>% 
-      unite(index,c(vf_group,area_group,man_group,GRIDCELL_group),sep = '',remove = FALSE) %>% 
+      unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>% 
+      filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group)) %>% 
       filter(index == ind) %>% 
       summarise(catch = sum(catch,na.rm=TRUE)) %>% 
       mutate(catch = catch/1000) %>% 
       .$catch
   
-  #stations for the ind grouping
-  #To make code more general I switched st_ref to tmp in the following subsetting - this is to avoid the need for
-  #the current ind-based subset to also be a subset of the reference group
-  
-  # st_tmp <- 
-  #   st_ref %>% 
-  #   filter(index == ind)
+  #stations for the ind groupings
   
    st_ind <- 
      st_c %>% 
+     rename(month = man) %>% 
      left_join(month_group) %>% 
      left_join(GRIDCELL_group) %>% 
      left_join(area_group) %>% 
      left_join(vf_group) %>% 
-     filter(!is.na(man_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA') %>%       
+     mutate(vf = ifelse(synaflokkur %in% c(30,35), 'v3035', vf)) %>% 
+     left_join(synaflokkur_group) %>%
+     filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group)) %>%       
      ungroup() %>% 
-     unite(index,c(vf_group,area_group,man_group,GRIDCELL_group),sep = '',remove = FALSE) %>%  
+     unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>%  
      filter(index == ind)
     
   #otolith data for ind-based subset - this has repeat entries with differen weights (fjoldi) for the ALK
@@ -290,7 +302,7 @@ calc_all <- function(ind,
   #cond data for the ind-based subset
   cond_ind <- 
    cond_group %>% 
-   unite(index,c(vf_group,area_group,man_group,GRIDCELL_group),sep = '',remove = FALSE) %>% 
+   unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>% 
    filter(index == ind) %>% 
    select(condition,power) %>% 
    unlist()
@@ -300,6 +312,7 @@ calc_all <- function(ind,
                   lengd=age_minlength$minlength,aldur=age_minlength$age,
                   Stodvar=st_c,
                   FilterAldurLengd=FALSE)
+  ###START HERE TO MODIFY HOW LENGTH DISTRIBUTIONS FORMED FROM SURVEY VERSUS CATCH
   distributions <- MakeLdist(Species,lengd=age_minlength$minlength,
                     Stodvar=st_c,
                     lengdir=le_ind,
@@ -315,14 +328,21 @@ calc_all <- function(ind,
 
 #will be renamed after going through later code to make sure I can recognize it
 
-fjallirsynaflokkar1reg <- 
-#dist_and_keys <-
+#fjallirsynaflokkar1reg <- 
+dist_and_keys <-
   commcatch_groupings %>%
   select(index) %>% 
   unlist() %>% 
   as.list() %>% 
   set_names(.,.) %>% 
-  purrr::map(calc_all)
+  purrr::map(calc_all, 
+             month_group = month_group, 
+             GRIDCELL_group = GRIDCELL_group, 
+             area_group = area_group, 
+             vf_group = vf_group, 
+             synaflokkur_group = synaflokkur_group, 
+             cond_group = cond_group, 
+             ref_group = ref_group)
 
 totfjallirsynaflokkar1reg <- 
 # total_FjPerAldur <-

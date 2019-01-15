@@ -5,6 +5,7 @@
 
 
 # A. Data gathering ------------------------------------------------------------
+dbRemoveTable(mar,paste0('raw_index_calc_',Species))
 
 by.length <-
   # 1. get survey stations -----------------------------------------------------
@@ -26,7 +27,7 @@ left_join(lesa_lengdir(mar) %>%
 #     TODO: Find a more permanent solution so scripts works for more than
 #           one species (via group_by( ..., tegund))
 mutate(tegund = if_else(is.na(tegund), Species, tegund),
-       lengd  = if_else(is.na(lengd), Length.min, lengd),
+       lengd  = if_else(is.na(lengd), Length.min, lengd), 
        fjoldi = if_else(is.na(fjoldi), 0, fjoldi)) %>%
   
   # 3. get count data ----------------------------------------------------------
@@ -70,21 +71,24 @@ left_join(tbl_mar(mar, "ops$einarhj.lwcoeff"),
               mutate(area = area / 1.852^2)) %>%
   mutate(n = N,
          b = B) %>% 
+  #raise by strata
   mutate(N     = N  * area / std.towlength,
          B     = B  * area / std.towlength) %>% 
+  #divide by number of tows (?)
   group_by(tegund,ar,strata) %>% 
   mutate(N = N/n_distinct(synis_id),
          B = B/n_distinct(synis_id)) %>% 
   
+  #Below not really necessary
   # 8. Cumulative calculation
   #     Note: This step is a precursor for calculating things via
   #           abundance less than and biomass greater than
-  arrange(tegund, synis_id, lengd) %>%
-  group_by(tegund, synis_id) %>%
-  mutate(cN = cumsum(N),
-         cB = sum(B, na.rm = TRUE) - cumsum(B) + B) %>% #huh?
+  #arrange(tegund, synis_id, desc(lengd)) %>% #indices will are calculated as greater than or equal to, so need to reverse lengd order
+  #group_by(tegund, synis_id) %>%
+  #mutate(cN = cumsum(N),
+  #       cB = sum(B, na.rm = TRUE) - cumsum(B) + B) %>% #this is for plotting indices at certain length cutoffs in 03-indices4plot
   ungroup() %>% 
-  compute(name='raw_index_calc',temporary =FALSE, overwrite =TRUE)
+  compute(name=paste0('raw_index_calc_',Species),temporary =FALSE, overwrite =TRUE)
 
 
-#tbl(mar, 'raw_index_calc')
+tbl(mar, paste0('raw_index_calc_',Species))
