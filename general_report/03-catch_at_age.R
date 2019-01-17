@@ -131,7 +131,7 @@ commcatch <-
   catch %>% 
   left_join(sc) %>% 
   mutate(afli = afli*landings/catch) %>% #discrepancy correction
-  mutate(synaflokkur_group %in% unlist(comm_synaflokkur_group)) %>% # 'commercial' synaflokkur - helps with later groupings - 
+  mutate(synaflokkur_group = 's1') %>% # 'commercial' synaflokkur - helps with later groupings - 
   group_by(vf, man) %>% 
   filter(!is.na(afli)) %>% 
   mutate(catch = afli) %>% 
