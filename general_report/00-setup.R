@@ -1,3 +1,4 @@
+# devtools::install_github('mareframe/mfdb',ref='6.x')
 #devtools::install_github("fishfollower/SAM/stockassessment")
 #devtools::install_github("fishvice/husky", dependencies = FALSE) # A temporary measure
 #devtools::install_github("fishvice/pax", dependencies = FALSE)
@@ -42,7 +43,7 @@ Length.max <- 500                 # Maximum length for indices calculation
 #cutoffs for indices in the 4 corners of the 4-plot
 #this is coded for looping over multiple species
 cutoffs_list<-NULL
-cutoffs_list[[Species]]<-list(total = c(5,500), juv = c(30,50), B40 = c(40,500), B60=c(60,500))
+cutoffs_list[[Species]]<-list(total = c(5,500), juv = c(0,30), B40 = c(40,500), B60=c(60,500))
 cutoffs<-cutoffs_list[[Species]] 
 
 
@@ -61,16 +62,16 @@ max.towlength <- 8             # Maximum "acceptable" towlength
 #NOT WORKING not sure why - but not necessary -replaced with fiskifelag_oslaegt()
 #Get old catch data
 # bind_rows(
-#   list.files('/net/hafkaldi/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = '^[0-9]+',full.names = TRUE) %>% 
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = '^[0-9]+',full.names = TRUE) %>% 
 #     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
 #     bind_rows() %>% 
 #     rename_(.dots=stats::setNames(colnames(.),c('vf',	'skip',	'teg',	'ar',	'man',	'hofn',	'magn'))) %>% 
 #     mutate(magn=as.numeric(magn)),
-#   list.files('/net/hafkaldi/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'ready',full.names = TRUE) %>% 
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'ready',full.names = TRUE) %>% 
 #     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
 #     bind_rows() %>% 
 #     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn'))),
-#   list.files('/net/hafkaldi/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'afli.[0-9]+$',full.names = TRUE) %>% 
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'afli.[0-9]+$',full.names = TRUE) %>% 
 #     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep=';')) %>% 
 #     bind_rows()%>% 
 #     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn')))) %>%
@@ -78,7 +79,7 @@ max.towlength <- 8             # Maximum "acceptable" towlength
 #   mutate(veidisvaedi='I') %>% 
 #   rename(veidarfaeri=vf,skip_nr=skip,magn_oslaegt=magn,fteg=teg) %>% 
 #   dbWriteTable(mar,'landed_catch_pre94',.)
-#attach("/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
+#attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
 
 #add code here that was to get old data
 
@@ -113,34 +114,34 @@ mar::afli_afli(mar) %>%
 ###--------COMPILE STRATA-----###
 
 ###---- Old strata ----###
-attach("/net/hafkaldi/export/u2/reikn/R/SurveyWork/OldStratas/.RData")
+attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/OldStratas/.RData")
 d <- 
   data_frame(oldstrata = attributes(STRATAS)$names %>% as.integer(),
              name = attributes(STRATAS)$names,
              area = attributes(STRATAS)$area,
              rall.area = attributes(STRATAS)$rall.area)
 dbWriteTable(mar, name = "OLDSTRATAAREA", value = d, overwrite = TRUE)
-detach("file:/net/hafkaldi/export/u2/reikn/R/SurveyWork/OldStratas/.RData")
+detach("file:/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/OldStratas/.RData")
 # sql: grant select on oldstrataarea to h_fiskar_skoda
 
 ###---- New strata ----###
-attach("/net/hafkaldi/export/u2/reikn/R/SurveyWork/NewStratas/.RData")
+attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/NewStratas/.RData")
 d <- 
   data_frame(newstrata = 1:length(attributes(STRATAS)$names),
              name = attributes(STRATAS)$names,
              area = attributes(STRATAS)$area,
              rall.area = attributes(STRATAS)$rall.area)
 dbWriteTable(mar, name = "NEWSTRATAAREA", value = d, overwrite = TRUE)
-detach("file:/net/hafkaldi/export/u2/reikn/R/SurveyWork/NewStratas/.RData")
+detach("file:/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/NewStratas/.RData")
 # sql: grant select on newstrataarea to h_fiskar_skoda
 
 ###---- SMB ----###
-attach("/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
+attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
 d <- 
   STODVAR.all %>%
   select(synis_id = synis.id, oldstrata, newstrata)
 dbWriteTable(mar, name = "SMBSTATIONSSTRATA", value = d, overwrite = TRUE)
-detach("file:/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
+detach("file:/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
 # sql: grant select on smbstationsstrata to h_fiskar_skoda
 
 
@@ -155,18 +156,18 @@ detach("file:/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
 #   mutate(veidarfaeri = 73)
 # dbWriteTable(mar, name = "SMB_INDEX_STRATA", value = SMB_INDEX_STRATA, overwrite = TRUE)
 
-#attach('/net/hafkaldi/export/u2/reikn/Splus5/HAUSTRALLNewStrata/.RData', pos=3)
+#attach('/net/hafkaldi.hafro.is/export/u2/reikn/Splus5/HAUSTRALLNewStrata/.RData', pos=3)
 
 
 ###---- SMH ----###
 
-attach("/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMH/stations.rdata")
+attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMH/stations.rdata")
 d <- 
   haustrall.all.st %>%
   select(synis_id = synis.id, newstrata) %>% 
   mutate(newstrata = as.integer(newstrata))
 dbWriteTable(mar, name = "SMHSTATIONSSTRATA", value = d, overwrite = FALSE)
-detach("file:/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMH/stations.rdata")
+detach("file:/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMH/stations.rdata")
 # sql: grant select on smhstationsstrata to h_fiskar_skoda
 
 
@@ -181,7 +182,7 @@ reitmapping_original <- read.table(
   mutate(id = 1:n(),
          lat = geo::sr2d(GRIDCELL)$lat,
          lon = geo::sr2d(GRIDCELL)$lon) %>% 
-  by_row(safely(function(x) geo::srA(x$GRIDCELL),otherwise=NA)) %>% 
+  purrrlyr::by_row(safely(function(x) geo::srA(x$GRIDCELL),otherwise=NA)) %>% 
   unnest(size=.out %>% map('result')) %>% 
   select(-.out) %>% 
   na.omit()

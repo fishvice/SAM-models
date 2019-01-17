@@ -92,3 +92,125 @@ left_join(tbl_mar(mar, "ops$einarhj.lwcoeff"),
 
 
 tbl(mar, paste0('raw_index_calc_',Species))
+
+
+#####-------Indices created with 01-length-based_indices.R-------#####
+#Calculate CVs
+
+calc_cv <- function(m, s, area, n) {
+  
+  Mean = sum(m * area) / sum(area)
+  Sum = sum(m * area)
+  tmpsum = sum(m[!is.na(s)] * area[!is.na(s)])
+  Calc.sdev = sqrt(sum(s[!is.na(s)]^2 * area[!is.na(s)]^2/  n[!is.na(s)])   / sum(area[!is.na(s)])^2)
+  Sdev = Calc.sdev * Sum/tmpsum
+  cv = Sdev/Mean
+  
+  return(cv)
+}
+
+
+# B. Summarise abundance and biomass by station
+#global variables used:
+#Species = Species, Length.min = Length.min, Length.max = Length.max,
+#std.cv = std.cv, std.towlength = std.towlength, min.towlength = min.towlength, 
+#max.towlength = max.towlength, Synaflokkur = Synaflokkur, Tognumer = Tognumer
+
+#lower bound inclusive
+calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)), type = 'by.year'){
+  
+  #create index table for later
+  ind.tmp <-
+    names(length_ranges) %>% 
+    as.list() %>% 
+    set_names(.,.) %>% 
+    purrr::map(.,function(x){
+      y <-
+        tbl(mar, paste0('raw_index_calc_',Species)) %>%
+        select(lengd) %>%
+        distinct %>% 
+        mutate(ind.tmp = ifelse(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2], 1, 0)) %>% 
+        collect(n=Inf)
+      #      names(y)[2] <- x
+      #      return(y)
+    }) #%>% 
+  #Reduce(function(...) merge(..., by='lengd', all.x=TRUE), .)
+  
+  #This part is skipped because 01-length-based_indices.R produces values that are
+  #summable up through the level of strata - already adjusted for area and # tows, etc.
+  # 8. summarise by station ----------------------------------------------------
+  
+  #  by.station <- 
+  
+  #  tbl(mar, paste0('raw_index_calc_',Species)) %>% 
+  # NOTE: here is the first step where statistics by length is dropped
+  #       some (minor) recoding above would be needed if one were to take things
+  #       forward by each length class
+  #group_by(synis_id, synaflokkur, strata, reitur, smareitur, tognumer, veidarfaeri, tegund, ar,lengd,area) %>% 
+  #  summarise(N = sum(N, na.rm = TRUE),
+  #            B = sum(B, na.rm = TRUE)) %>% 
+  # Zero stations - THOUGHT THIS STEP SHOULD BE REDUNDANT
+  #  mutate(N = nvl(N,0),
+  #         B = nvl(B,0)) 
+  
+  # ------------------------------------------------------------------------------
+  # C. Calculate mean and standard deviation of abundance and biomass of stations
+  #    within each strata and raise estimates by the area of the strata
+  
+  by.strata <-
+    
+    tbl(mar, paste0('raw_index_calc_',Species)) %>% 
+    
+    # 9. filter stations ---------------------------------------------------------  
+  filter((synaflokkur == Synaflokkur[1] & tognumer %in% Tognumer[[1]]) | 
+           (synaflokkur == Synaflokkur[2] & tognumer %in% Tognumer[[2]])) %>%  #IS THIS NECESSARY? 
+    
+    # 10. summarise by strata ----------------------------------------------------
+  # 10.a  Get the strata for each station - already done when calculating raw_index_calc table
+  # 10.b group by year and strata and calculate number of stations, mean and sd
+  group_by(tegund, ar, strata, synaflokkur, lengd, area) %>% 
+    summarise(sN  = n(),   # number of stations within strata
+              n_m  = sum(N, na.rm = TRUE),
+              n_d  = ifelse(n() == 1, sum(N, na.rm = TRUE) * std.cv, sd(N)),
+              b_m  = sum(B, na.rm = TRUE),
+              b_d  = ifelse(n() == 1, sum(B, na.rm = TRUE) * std.cv, sd(B)))  
+  
+  
+  
+  # ------------------------------------------------------------------------------
+  # D. Summarise data by year
+  
+  
+  by.year <- 
+    names(ind.tmp) %>% 
+    as.list() %>% 
+    set_names(.,.) %>% 
+    purrr::map(function(x){
+      by.strata %>% 
+        # ----------------------------------------------------------------------------
+      # Up to now we only have been operating within Oracle. I.e. sql-scripts via R.
+      # Have to collect here because of calc_cv function in the year aggregate step
+      # TODO: Fix that, do internally in Oracle
+      collect(n = Inf) %>% 
+        # ----------------------------------------------------------------------------
+      # some data fall outside strata, drop them - needs some double checking of code
+      drop_na() %>% 
+        # subset by index groups------------------------------------------------
+      left_join(ind.tmp[[x]]) %>% 
+        filter(ind.tmp==1) %>% 
+        # 11. summarise by year ------------------------------------------------------
+      group_by(tegund, synaflokkur, ar) %>%
+        summarise(n = sum(n_m, na.rm = TRUE),
+                  # A la Höski
+                  n.cv = calc_cv(n_m, n_d, area, sN),
+                  b = sum(b_m, na.rm = TRUE),
+                  # A la Höski
+                  b.cv = calc_cv(b_m, b_d, area, sN),
+                  ml = mean(lengd, na.rm = TRUE)) %>%
+        mutate(index = x) %>% 
+        ungroup()
+    }) %>% 
+    bind_rows(.)
+  
+  if(type=='by.year'){return(by.year)} else {return(by.strata)} 
+}
