@@ -9,7 +9,7 @@
 
 comm_synaflokkur_group <- list('s1')
 surv_synaflokkur <- c(30,35)
-
+mat_codes <- c(2:100) #IS THIS RIGHT?
 # all_areas is all possible areas, 
 # global_areas is the full region for consideration for the species
 global_areas <- 101:108 #for haddock
@@ -356,7 +356,8 @@ calc_all <- function(ind,
 # ------------------------------------------------------------------------------
 ###----Use calc_all function with aggregations defined above----###
 
-#will be renamed after going through later code to make sure I can recognize it
+  
+
 
 #fjallirsynaflokkar1reg <- 
 dist_and_keys <-
@@ -414,6 +415,32 @@ catch_by_age <-
               spread(key = 'index', value = 'amount') %>% 
               as_data_frame() %>% 
               mutate(age = as.numeric(age)))
+
+#will be renamed after going through later code to make sure I can recognize it
+mat <-
+  kv %>% 
+  filter(!is.na(kynthroski), !is.na(aldur)) %>% 
+  mutate(Mature = ifelse(kynthroski %in% mat_codes, 'Mat', 'Imm')) %>% 
+  group_by(aldur,Mature) %>% 
+  summarise(m_n = n()) %>% 
+  left_join(kv %>% 
+              filter(!is.na(kynthroski), !is.na(aldur)) %>% 
+              group_by(aldur) %>% 
+              summarise(tot_n = n())) %>% 
+  mutate(prop = m_n/tot_n) %>% 
+  arrange(aldur, Mature) %>% 
+  filter(Mature == 'Mat') %>% 
+  select(age = aldur, mat = prop) %>% 
+  collect(n=Inf)
+
+catch_by_age<-
+  catch_by_age %>% 
+  left_join(mat %>% 
+            full_join(data_frame(age = catch_by_age$age)) %>%
+            mutate(mat_sub = c(0,mat$mat[-length(mat$mat)]),
+                   mat = ifelse(is.na(mat), mat_sub, mat)) #fills in mat based on next youngest age ))
+  ) %>% 
+  select(-mat_sub)
 
 #Doesn't this repeat?
 # totfjallirsynaflokkar1reg <- fjallirsynaflokkar1reg[[1]]$FjPerAldur        

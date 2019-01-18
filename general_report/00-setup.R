@@ -29,7 +29,13 @@ mar <- connect_mar()
 
 tyr <- 2018
 Species <- 2                    # Select a species
-sp_dir<-paste0(Species, ' - ', lesa_tegundir(mar) %>% filter(tegund==Species) %>% select(enskt_heiti) %>% collect(n=1))
+sp_name <- 
+  lesa_tegundir(mar) %>% 
+  filter(tegund==Species) %>% 
+  select(heiti) %>% collect() %>% 
+  unlist
+
+sp_dir<-paste0(Species, ' - ', sp_name)
 dir.create(file.path(getwd(), sp_dir))
 setwd(file.path(getwd(), sp_dir)) #should work for windows?
 res_dir<-as.character(tyr)
@@ -37,11 +43,7 @@ dir.create(file.path(getwd(), res_dir))
 
 Synaflokkur <- c(30,35)         #for indices
 Tognumer <- list(1:39, 1:75)       #ARE THESE RIGHT?
-heiti <- 
-  lesa_tegundir(mar) %>% 
-  filter(tegund==Species) %>% 
-  select(heiti) %>% collect() %>% 
-  unlist
+
 
 Length.min <- 5                   # Minimum length for indices calculation
 Length.max <- 500                 # Maximum length for indices calculation
@@ -98,7 +100,7 @@ dbRemoveTable(mar,'NEWSTRATAAREA')
 dbRemoveTable(mar,'SMBSTATIONSSTRATA')
 dbRemoveTable(mar,'SMHSTATIONSSTRATA')
 
-dbRemoveTable(mar,paste0(heiti,'_catch'))
+dbRemoveTable(mar,paste0(sp_name,'_catch'))
 mar::afli_afli(mar) %>% 
   dplyr::filter(tegund == Species) %>%
   dplyr::left_join(afli_afli(mar) %>% 
@@ -115,7 +117,7 @@ mar::afli_afli(mar) %>%
   dplyr::select(id=visir,towtime=togtimi,gear,vessel_nr=skipnr,year=ar,month=man,
                 lat=breidd,lon=lengd,gridcell,depth=dypi,catch=afli,total,hooks,nr_net) %>% 
   dplyr::mutate(depth = 1.83*depth) %>% #still necessary?
-  compute(name=paste0(heiti,'_catch'),temporary=FALSE)
+  compute(name=paste0(sp_name,'_catch'),temporary=FALSE)
 
 # ------------------------------------------------------------------------------
 ###--------COMPILE STRATA-----###

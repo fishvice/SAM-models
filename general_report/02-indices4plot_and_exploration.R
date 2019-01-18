@@ -5,7 +5,6 @@ library(patchwork)
 library(forcats)
 library(viridis)
 
-sp_name <- lesa_tegundir(mar) %>% filter(tegund==Species) %>% select(enskt_heiti) %>% collect(n=1)
 
 ####-------Comparison of indices in 4plot-------#####
 
