@@ -23,13 +23,20 @@ library(patchwork)
 
 mar <- connect_mar()
 
+
 # ------------------------------------------------------------------------------
 # Variable stuff
 
 tyr <- 2018
+Species <- 2                    # Select a species
+sp_dir<-paste0(Species, ' - ', lesa_tegundir(mar) %>% filter(tegund==Species) %>% select(enskt_heiti) %>% collect(n=1))
+dir.create(file.path(getwd(), sp_dir))
+setwd(file.path(getwd(), sp_dir)) #should work for windows?
+res_dir<-as.character(tyr)
+dir.create(file.path(getwd(), res_dir))
+
 Synaflokkur <- c(30,35)         #for indices
 Tognumer <- list(1:39, 1:75)       #ARE THESE RIGHT?
-Species <- 2                    # Select a species
 heiti <- 
   lesa_tegundir(mar) %>% 
   filter(tegund==Species) %>% 

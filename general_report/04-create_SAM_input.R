@@ -1,25 +1,18 @@
 
-load(paste0(tyr, "_", Species,"_catch_at_age.rdata"))
+load(paste0(res_dir, '/', tyr, "_", Species,"_catch_at_age.rdata"))
 
-create_previous_years<-FALSE #TRUE if model is run for first time and previous years data needs to be filled in
+create_previous_years<-TRUE #TRUE if model is run for first time and previous years data needs to be filled in
 
 if(create_previous_years){
-  
-  if (file.exists("first_run")){
-    stop('first_run folder already exists. Are you sure you want to rewrite the first run? This 
-         may destroy any documents of previous year assessments because
-         data taken from queries can change over time. If you REALLY want to, 
-         then delete this folder first.')
-  } else {
-    dir.create(file.path(getwd(), "first_run"))
-  }
   
   tyr_current <- tyr
   catch_by_age_all <- catch_by_age
   
+  #This will take a while
   for(i in (tyr_current - 1):1985){
     tyr <- i
-    source('03-catch_at_age')
+    print(paste0('beginning ', tyr))
+    source('../general_report/03-catch_at_age.R')
     catch_by_age_all <- bind_rows(catch_by_age_all, catch_by_age) 
   }
   
@@ -30,7 +23,7 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     as.matrix()
   row.names(cn)<-cn[,1]
-  write.csv(cn[,-1], 'first_run/catage.csv')
+  write.csv(cn[,-1], paste0(res_dir,'/','catage.csv'))
   
   cw <-
     catch_by_age_all %>% 
@@ -39,7 +32,7 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     as.matrix()
   row.names(cw)<-cw[,1]
-  write.csv(cw[,-1], 'first_run/catch_weights.csv')
+  write.csv(cw[,-1], paste0(res_dir,'/','catch_weights.csv'))
 
   smb <-
     catch_by_age_all %>% 
@@ -48,7 +41,7 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     as.matrix()
   row.names(smb)<-smb[,1]
-  write.csv(smb[,-1], 'first_run/smb.csv')
+  write.csv(smb[,-1], paste0(res_dir,'/','smb.csv'))
 
   smh <-
     catch_by_age_all %>% 
@@ -57,7 +50,7 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     as.matrix()
   row.names(smh)<-smh[,1]
-  write.csv(smh[,-1], 'first_run/smh.csv')
+  write.csv(smh[,-1], paste0(res_dir,'/','smh.csv'))
 
   sw <-
     catch_by_age_all %>% 
@@ -66,7 +59,7 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     as.matrix()
   row.names(sw)<-sw[,1]
-  write.csv(sw[,-1], 'first_run/stock_weights.csv')
+  write.csv(sw[,-1], paste0(res_dir,'/','stock_weights.csv'))
   
   #ADD MATURITY HERE
   
@@ -76,7 +69,8 @@ if(create_previous_years){
 #NOW READ IN FILES AND ADD THIS YEAR'S DATA AFTER WARNING CHECK TO MAKE SURE YEARS LINE UP
 ## Catch at age 
 cn <- 
-  read_csv('https://data.hafro.is/assmt/2018/cod/catage.csv') %>% 
+  #read_csv('https://data.hafro.is/assmt/2018/cod/catage.csv') %>% 
+  read.csv(paste0(res_dir,'/','catage.csv'), row.names = 1)
   tmp_fun() %>% 
   ## append missing ages with nominal catches
   cbind(`1`=0.001,`2`=0.001,.)
