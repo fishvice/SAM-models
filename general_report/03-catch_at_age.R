@@ -10,6 +10,7 @@
 comm_synaflokkur_group <- list('s1')
 surv_synaflokkur <- c(30,35)
 mat_codes <- c(2:100) #IS THIS RIGHT?
+surv_ind <- c('t1s2r1vsurv', 't2s3r1vsurv')
 # all_areas is all possible areas, 
 # global_areas is the full region for consideration for the species
 global_areas <- 101:108 #for haddock
@@ -333,20 +334,46 @@ calc_all <- function(ind,
       lims <- data.frame(l = age_minlength$minlength[-length(age_minlength$minlength)],
                        u = age_minlength$minlength[-1])   
       distributions <- list()
-      dist.tmp <-
-        as.list(lims$l) %>% 
-        set_names(.,.) %>% 
-        purrr::map(function(x) x <- as.vector(unlist(lims[lims$l==x,]))) %>% 
-        calc_index(mar, length_ranges = .) %>% 
-        filter(ar == tyr,
-               synaflokkur == synaflokkur_group %>% 
-                              filter(synaflokkur_group == str_sub(ind,start = 3, end = 4)) %>% 
-                              select(synaflokkur) %>% 
-                              unlist
-               ) 
-      distributions$LDIST.ALLS <- dist.tmp$n 
-      distributions$MEANWT.ALLS <- dist.tmp$b / dist.tmp$n * 1000
-      distributions$MEANLE <- dist.tmp$ml
+      dist.tmp <- list()
+              
+      #skip years of no survey data  
+#      if(((tyr < 1996 | tyr==2011) & (35 == (synaflokkur_group %>% 
+#                                            filter(synaflokkur_group==str_sub(ind,start = 3, end = 4)) %>%
+#                                            select(synaflokkur) %>%
+#                                            unlist)) %>% any) |
+#         (tyr < 1985  & (30 == (synaflokkur_group %>% 
+#                                            filter(synaflokkur_group==str_sub(ind,start = 3, end = 4)) %>%
+#                                            select(synaflokkur) %>%
+#                                            unlist)) %>% any) 
+#         ){
+#     Below should be more general but cover the above subsets
+      if(!(surv_synaflokkur %in% synaflokkur_group) %>% any){
+        
+          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(age_minlength$age) - 1)
+        
+        } else {
+        
+          try(dist.tmp <-
+                as.list(lims$l) %>% 
+                set_names(.,.) %>% 
+                purrr::map(function(x) x <- as.vector(unlist(lims[lims$l==x,]))) %>% 
+                calc_index(mar, length_ranges = .) %>% 
+                filter(ar == tyr,
+                       synaflokkur == synaflokkur_group %>% 
+                         filter(synaflokkur_group == str_sub(ind,start = 3, end = 4)) %>% 
+                         select(synaflokkur) %>% 
+                         unlist
+                ), silent = T)
+        }
+          
+        if(length(dist.tmp$n)==0){ # likely due to no data
+          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(age_minlength$age) - 1)
+        } 
+          
+        distributions$LDIST.ALLS <- dist.tmp$n 
+        distributions$MEANWT.ALLS <- dist.tmp$b / dist.tmp$n * 1000
+        distributions$MEANLE <- dist.tmp$ml
+        
     }
   
   #fj2016allirsynaflokkar1reg$v1s1t1 <- Calc.fj(keys,tmp3)
@@ -363,7 +390,7 @@ calc_all <- function(ind,
 dist_and_keys <-
   commcatch_groupings %>%
   select(index) %>% 
-  bind_rows(data.frame(index = c('t1s2r1vsurv', 't2s3r1vsurv'))) %>% 
+  bind_rows(data.frame(index = surv_ind)) %>% 
   unlist() %>% 
   as.list() %>% 
   set_names(.,.) %>% 
@@ -431,14 +458,17 @@ mat <-
   arrange(aldur, Mature) %>% 
   filter(Mature == 'Mat') %>% 
   select(age = aldur, mat = prop) %>% 
-  collect(n=Inf)
+  collect(n=Inf) %>% 
+  full_join(data_frame(age = catch_by_age$age)) %>%
+  filter(age %in% catch_by_age$age) %>% 
+  arrange(age) 
 
 catch_by_age<-
   catch_by_age %>% 
   left_join(mat %>% 
-            full_join(data_frame(age = catch_by_age$age)) %>%
-            mutate(mat_sub = c(0,mat$mat[-length(mat$mat)]),
-                   mat = ifelse(is.na(mat), mat_sub, mat)) #fills in mat based on next youngest age ))
+            left_join(data.frame(age = catch_by_age$age, 
+                                 mat_sub = c(0,unlist(mat[,'mat'])[-length(unlist(mat[,'mat']))]))) %>% 
+            mutate(mat = ifelse(is.na(mat), mat_sub, mat)) #fills in mat at age based on next youngest age if no data available))
   ) %>% 
   select(-mat_sub)
 

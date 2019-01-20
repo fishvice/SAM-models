@@ -23,6 +23,7 @@ library(patchwork)
 
 mar <- connect_mar()
 
+recreate_helper_tables <- FALSE #helper tables should only need to be created once
 
 # ------------------------------------------------------------------------------
 # Variable stuff
@@ -32,7 +33,7 @@ Species <- 2                    # Select a species
 sp_name <- 
   lesa_tegundir(mar) %>% 
   filter(tegund==Species) %>% 
-  select(heiti) %>% collect() %>% 
+  select(enskt_heiti) %>% collect() %>% 
   unlist
 
 sp_dir<-paste0(Species, ' - ', sp_name)
@@ -65,32 +66,9 @@ std.width     <- 17 / 1852     # Standard sweep width in nautical miles
 min.towlength <- 2             # Minimum "acceptable" towlength
 max.towlength <- 8             # Maximum "acceptable" towlength
 
-# ------------------------------------------------------------------------------
-###----TOTAL CATCH----###
 
-#NOT WORKING not sure why - but not necessary -replaced with fiskifelag_oslaegt()
-#Get old catch data
-# bind_rows(
-#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = '^[0-9]+',full.names = TRUE) %>% 
-#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
-#     bind_rows() %>% 
-#     rename_(.dots=stats::setNames(colnames(.),c('vf',	'skip',	'teg',	'ar',	'man',	'hofn',	'magn'))) %>% 
-#     mutate(magn=as.numeric(magn)),
-#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'ready',full.names = TRUE) %>% 
-#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
-#     bind_rows() %>% 
-#     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn'))),
-#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'afli.[0-9]+$',full.names = TRUE) %>% 
-#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep=';')) %>% 
-#     bind_rows()%>% 
-#     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn')))) %>%
-#   filter(!(ar==1991&is.na(skip))) %>% 
-#   mutate(veidisvaedi='I') %>% 
-#   rename(veidarfaeri=vf,skip_nr=skip,magn_oslaegt=magn,fteg=teg) %>% 
-#   dbWriteTable(mar,'landed_catch_pre94',.)
-#attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
+if(recreate_helper_tables){ #these should be stable every year
 
-#add code here that was to get old data
 
 #these only need to be run once then can be commented out
 dbRemoveTable(mar,'husky_gearlist')
@@ -99,25 +77,6 @@ dbRemoveTable(mar,'OLDSTRATAAREA')
 dbRemoveTable(mar,'NEWSTRATAAREA')
 dbRemoveTable(mar,'SMBSTATIONSSTRATA')
 dbRemoveTable(mar,'SMHSTATIONSSTRATA')
-
-dbRemoveTable(mar,paste0(sp_name,'_catch'))
-mar::afli_afli(mar) %>% 
-  dplyr::filter(tegund == Species) %>%
-  dplyr::left_join(afli_afli(mar) %>% 
-                     dplyr::group_by(visir) %>% 
-                     dplyr::summarise(total=sum(afli,na.rm = TRUE))) %>% 
-  dplyr::inner_join(mar::afli_stofn(mar) %>% 
-                      mutate(gridcell = reitur*10+smareitur)) %>% 
-  dplyr::left_join(mar::afli_toga(mar) %>% 
-                     dplyr::select(visir,togtimi)) %>% 
-  dplyr::left_join(mar::afli_lineha(mar) %>%
-                     dplyr::mutate(hooks = onglar*bjod, nr_net = dregin) %>% 
-                     dplyr::select(visir,hooks, nr_net)) %>% 
-  dplyr::left_join(tbl(mar,'gear_mapping'),by=c('veidarf'='veidarfaeri')) %>% 
-  dplyr::select(id=visir,towtime=togtimi,gear,vessel_nr=skipnr,year=ar,month=man,
-                lat=breidd,lon=lengd,gridcell,depth=dypi,catch=afli,total,hooks,nr_net) %>% 
-  dplyr::mutate(depth = 1.83*depth) %>% #still necessary?
-  compute(name=paste0(sp_name,'_catch'),temporary=FALSE)
 
 # ------------------------------------------------------------------------------
 ###--------COMPILE STRATA-----###
@@ -205,3 +164,54 @@ reitmapping_original <- read.table(
 
 husky::gearlist %>% 
   dbWriteTable(mar,'husky_gearlist',.,overwrite =TRUE)
+
+}
+
+#Catch tables need to be rerun every year
+# ------------------------------------------------------------------------------
+###----TOTAL CATCH ----###
+
+#NOT WORKING not sure why - but not necessary -replaced with fiskifelag_oslaegt()
+#Get old catch data
+# bind_rows(
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = '^[0-9]+',full.names = TRUE) %>% 
+#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
+#     bind_rows() %>% 
+#     rename_(.dots=stats::setNames(colnames(.),c('vf',	'skip',	'teg',	'ar',	'man',	'hofn',	'magn'))) %>% 
+#     mutate(magn=as.numeric(magn)),
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'ready',full.names = TRUE) %>% 
+#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
+#     bind_rows() %>% 
+#     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn'))),
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'afli.[0-9]+$',full.names = TRUE) %>% 
+#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep=';')) %>% 
+#     bind_rows()%>% 
+#     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn')))) %>%
+#   filter(!(ar==1991&is.na(skip))) %>% 
+#   mutate(veidisvaedi='I') %>% 
+#   rename(veidarfaeri=vf,skip_nr=skip,magn_oslaegt=magn,fteg=teg) %>% 
+#   dbWriteTable(mar,'landed_catch_pre94',.)
+#attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
+
+#add lesa_fiskifelag_oslaegt code here later if necessary
+
+dbRemoveTable(mar,paste0(sp_name,'_catch'))
+mar::afli_afli(mar) %>% 
+  dplyr::filter(tegund == Species) %>%
+  dplyr::left_join(afli_afli(mar) %>% 
+                     dplyr::group_by(visir) %>% 
+                     dplyr::summarise(total=sum(afli,na.rm = TRUE))) %>% 
+  dplyr::inner_join(mar::afli_stofn(mar) %>% 
+                      mutate(gridcell = reitur*10+smareitur)) %>% 
+  dplyr::left_join(mar::afli_toga(mar) %>% 
+                     dplyr::select(visir,togtimi)) %>% 
+  dplyr::left_join(mar::afli_lineha(mar) %>%
+                     dplyr::mutate(hooks = onglar*bjod, nr_net = dregin) %>% 
+                     dplyr::select(visir,hooks, nr_net)) %>% 
+  dplyr::left_join(tbl(mar,'gear_mapping'),by=c('veidarf'='veidarfaeri')) %>% 
+  dplyr::select(id=visir,towtime=togtimi,gear,vessel_nr=skipnr,year=ar,month=man,
+                lat=breidd,lon=lengd,gridcell,depth=dypi,catch=afli,total,hooks,nr_net) %>% 
+  dplyr::mutate(depth = 1.83*depth) %>% #still necessary?
+  compute(name=paste0(sp_name,'_catch'),temporary=FALSE)
+
+

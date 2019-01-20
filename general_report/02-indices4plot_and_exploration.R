@@ -338,7 +338,7 @@ lnd_by_gear_bottom <-
 
 ## depth by gear and year
 depth_dat <- 
-  tbl(mar,'had_catch') %>% #DOH! Forgot where this is created
+  tbl(mar,paste0(sp_name,'_catch')) %>% #DOH! Forgot where this is created
   filter(year > 2000, year < tyr) %>% 
   mutate(depth_class = ifelse(depth < 101,"4",
                               ifelse(depth < 201,"3",
@@ -420,7 +420,7 @@ region.plot <-
   scale_fill_brewer(palette='YlOrRd') 
 
 catch_by_area <- 
-  tbl(mar,'had_catch') %>%
+  tbl(mar,paste0(sp_name,'_catch')) %>%
   filter(year>1992,year<tyr) %>% 
   left_join(tbl(mar,'reitmapping') %>% 
               rename(gridcell = GRIDCELL) %>% 
@@ -442,7 +442,7 @@ catch_by_area <-
   labs(y="Catches (kt)",fill='') +
   scale_fill_brewer(palette='YlOrRd') +
   
-  tbl(mar,'had_catch') %>%
+  tbl(mar,paste0(sp_name,'_catch')) %>%
   filter(year>1992,year<tyr) %>% 
   left_join(tbl(mar,'reitmapping') %>% 
               rename(gridcell = GRIDCELL) %>% 
@@ -465,7 +465,7 @@ catch_by_area <-
 
 ## spatial distribution of catches
 catch_dist_plot <- 
-  tbl(mar,'had_catch') %>% 
+  tbl(mar,paste0(sp_name,'_catch')) %>% 
   filter(year>1989, year < tyr) %>% 
   #filter(year %in% c(1990,1995,2000,2005,2010,2016)) %>% 
   mar:::encode_zchords(dx=0.125,dy=0.0625) %>% 
@@ -546,7 +546,7 @@ sampling_pos <-
 
 
 sampling_pos_plot <- 
-  tbl(mar,'had_catch') %>% 
+  tbl(mar,paste0(sp_name,'_catch')) %>% 
   filter(year == (tyr -1), gear %in% c('BMT','LLN','DSE')) %>% 
   #filter(year %in% c(1990,1995,2000,2005,2010,2016)) %>% 
   mar:::encode_zchords(dx=0.125/2,dy=0.0625/2) %>% 

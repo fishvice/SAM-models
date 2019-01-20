@@ -9,7 +9,7 @@ if(create_previous_years){
   catch_by_age_all <- catch_by_age
   
   #This will take a while
-  for(i in (tyr_current - 1):1985){
+  for(i in (tyr_current-1):1985){
     tyr <- i
     print(paste0('beginning ', tyr))
     source('../general_report/03-catch_at_age.R')
@@ -19,82 +19,70 @@ if(create_previous_years){
   cn <-
     catch_by_age_all %>% 
     select(age, year, ctons) %>% 
-    spread(key = year, value = ctons) %>% 
+    spread(key = age, value = ctons) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
-    as.matrix() %>% 
-    t()
-  colnames(cn)<-cn[1,]
-  write.csv(cn[-1,], paste0(res_dir,'/','catage.csv'))
+    rename(Year = year)
+  write.csv(cn, paste0(res_dir,'/','catage.csv'), row.names = F)
   
   cw <-
     catch_by_age_all %>% 
     select(age, year, cwt) %>% 
     spread(key = age, value = cwt) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
-    as.matrix() %>% 
-    t()
-  colnames(cw)<-cw[1,]
-  write.csv(cw[-1,], paste0(res_dir,'/','catch_weights.csv'))
+    rename(Year = year)
+  write.csv(cw, paste0(res_dir,'/','catch_weights.csv'), row.names = F)
 
   smb <-
     catch_by_age_all %>% 
     select(age, year, s2_sno) %>% 
     spread(key = age, value = s2_sno) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
-    as.matrix() %>% 
-    t()
-  colnames(smb)<-smb[1,]
-  write.csv(smb[-1,], paste0(res_dir,'/','smb.csv'))
+    rename(Year = year)
+  write.csv(smb, paste0(res_dir,'/','smb.csv'), row.names = F)
 
   smh <-
     catch_by_age_all %>% 
     select(age, year, s3_sno) %>% 
     spread(key = age, value = s3_sno) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
-    as.matrix() %>% 
-    t()
-  colnames(smh)<-smh[1,]
-  write.csv(smh[-1,], paste0(res_dir,'/','smh.csv'))
+    rename(Year = year)
+  write.csv(smh, paste0(res_dir,'/','smh.csv'))
 
   sw <-
     catch_by_age_all %>% 
     select(age, year, s2_swt) %>% 
     spread(key = age, value = s2_swt) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
-    as.matrix() %>% 
-    t()
-  colnames(sw)<-sw[1,]
-  write.csv(sw[-1,], paste0(res_dir,'/','stock_weights.csv'))
+    rename(Year = year)
+  write.csv(sw, paste0(res_dir,'/','stock_weights.csv'), row.names = F)
   
   mat <-
     catch_by_age_all %>% 
     select(age, year, mat) %>% 
     spread(key = age, value = mat) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
-    as.matrix() %>% 
-    t()
-  colnames(mat)<-mat[1,]
-  write.csv(mat[-1,], paste0(res_dir,'/','maturity.csv'))
-  
+    rename(Year = year)
+  write.csv(mat, paste0(res_dir,'/','maturity.csv'), row.names = F)
   
   tyr <- tyr_current
+  
 } else {
 
-}
-#NOW READ IN FILES AND ADD THIS YEAR'S DATA AFTER WARNING CHECK TO MAKE SURE YEARS LINE UP
+
 ## Catch at age 
 cn <- 
   #read_csv('https://data.hafro.is/assmt/2018/cod/catage.csv') %>% 
-  read.csv(paste0(res_dir,'/','catage.csv')) %>% 
+  read_csv(paste0(res_dir,'/','catage.csv')) %>% 
   set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, year, cno) %>% 
               spread(key = age, value = cno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
               ) %>%  
+  tmp_fun() %>% 
   arrange(year) %>% 
-  data.frame(., row.names = 1) %>% 
-  set_names(., c(as.character(catch_by_age$age %>% unique)))
+  #data.frame(., row.names = 1) %>% 
+  #set_names(., c(as.character(catch_by_age$age %>% unique)))
   
   
   #appending to be replaced with function
@@ -112,9 +100,10 @@ cw <-
               spread(key = age, value = cw) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) %>%  
+  tmp_fun() %>% 
   arrange(year) %>% 
-  data.frame(., row.names = 1) %>% 
-  set_names(., c(as.character(catch_by_age$age %>% unique)))
+  #data.frame(., row.names = 1) %>% 
+  #set_names(., c(as.character(catch_by_age$age %>% unique)))
 #read_csv('https://data.hafro.is/assmt/2018/cod/catch_weights.csv')%>% 
   #tmp_fun() %>% 
   #cbind(`1`=0,`2`=0,.) %>% 
@@ -182,3 +171,4 @@ sw <-
 mo <- read_csv('https://data.hafro.is/assmt/2018/cod/maturity.csv')  %>% 
   tmp_fun() %>% 
   cbind(`1`=0,`2`=0,.)
+}
