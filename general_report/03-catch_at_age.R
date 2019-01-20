@@ -566,6 +566,6 @@ commcatch_groupings %>%
 # tmp <- round(catch2016allirsynaflokkar1reg,2)
 
   
-
+dir.create(paste0(res_dir, '/', 'catch_at_age_rdata'))
 #save(list=c("catchallirsynaflokkar1reg","fjallirsynaflokkar1reg"),file="cnoallirsynaflokkar.rdata")
-save(list=c("catch_by_age","dist_and_keys"),file=paste0(res_dir, '/', tyr, "_", Species,"_catch_at_age.rdata"))
+save(list=c("catch_by_age","dist_and_keys"),file=paste0(res_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))

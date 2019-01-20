@@ -73,14 +73,14 @@ if(create_previous_years){
 cn <- 
   #read_csv('https://data.hafro.is/assmt/2018/cod/catage.csv') %>% 
   read_csv(paste0(res_dir,'/','catage.csv')) %>% 
-  set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
+  #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
-              select(age, year, cno) %>% 
+              select(age, Year = year, cno) %>% 
               spread(key = age, value = cno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
               ) %>%  
-  tmp_fun() %>% 
-  arrange(year) %>% 
+  tmp_fun() #%>% #will put cbind options as argument to tmp_fun
+  #arrange(year) %>% 
   #data.frame(., row.names = 1) %>% 
   #set_names(., c(as.character(catch_by_age$age %>% unique)))
   
@@ -88,79 +88,79 @@ cn <-
   #appending to be replaced with function
   #tmp_fun() %>% 
   ## append missing ages with nominal catches
-  #cbind(`1`=0.001,`2`=0.001,.)
+  #cbind(`1`=0.001,`2`=0.001,.) 
 
 
 ## Catch weight at age - are these individual or total?
 cw <- 
-  read.csv(paste0(res_dir,'/','catch_weights.csv')) %>% 
-  set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
+  read_csv(paste0(res_dir,'/','catch_weights.csv')) %>% 
+  #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
-              select(age, year, cw) %>% 
+              select(age, Year = year, cw) %>% 
               spread(key = age, value = cw) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) %>%  
-  tmp_fun() %>% 
-  arrange(year) %>% 
+  tmp_fun() %>% #will put cbind options as argument to tmp_fun
+  #arrange(year) %>% 
   #data.frame(., row.names = 1) %>% 
   #set_names(., c(as.character(catch_by_age$age %>% unique)))
 #read_csv('https://data.hafro.is/assmt/2018/cod/catch_weights.csv')%>% 
   #tmp_fun() %>% 
   #cbind(`1`=0,`2`=0,.) %>% 
-  #(function(x) x/1000)
+  (function(x) x/1000)
 
 
 ## Read the spring survey data
 smb <- 
-  read.csv(paste0(res_dir,'/','smb.csv')) %>% 
-  set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
+  read_csv(paste0(res_dir,'/','smb.csv')) %>% 
+  #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
-              select(age, year, s2_sno) %>% 
+              select(age, Year = year, s2_sno) %>% 
               spread(key = age, value = s2_sno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) %>%  
-  arrange(year) %>% 
-  data.frame(., row.names = 1) %>% 
-  set_names(., c(as.character(catch_by_age$age %>% unique)))
+  #arrange(year) %>% 
+  #data.frame(., row.names = 1) %>% 
+  #set_names(., c(as.character(catch_by_age$age %>% unique)))
 #read_csv('https://data.hafro.is/assmt/2018/cod/smb.csv')  %>% 
-  #tmp_fun()
+  tmp_fun() #will put cbind options as argument to tmp_fun
 ## set the time window of the survey
 attributes(smb)$time <- c(0.15,0.2)
 
 ## Autumn survey
 smh <- 
-  read.csv(paste0(res_dir,'/','smh.csv')) %>% 
-  set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
+  read_csv(paste0(res_dir,'/','smh.csv')) %>% 
+  #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
-              select(age, year, s3_sno) %>% 
+              select(age, Year = year, s3_sno) %>% 
               spread(key = age, value = s3_sno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) %>%  
-  arrange(year) %>% 
-  data.frame(., row.names = 1) %>% 
-  set_names(., c(as.character(catch_by_age$age %>% unique)))
+  #arrange(year) %>% 
+  #data.frame(., row.names = 1) %>% 
+  #set_names(., c(as.character(catch_by_age$age %>% unique)))
 
   #read_csv('https://data.hafro.is/assmt/2018/cod/smh.csv')  %>% 
-  #tmp_fun()
+  tmp_fun() #will put cbind options as argument to tmp_fun
 attributes(smh)$time <- c(0.7,0.8)
 
 
 
 ## Stock weights from spring survey
 sw <- 
-  read.csv(paste0(res_dir,'/','stock_weights.csv')) %>% 
-  set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
+  read_csv(paste0(res_dir,'/','stock_weights.csv')) %>% 
+  #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
-              select(age, year, s2_swt) %>% 
+              select(age, Year = year, s2_swt) %>% 
               spread(key = age, value = s2_swt) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) %>%  
-  arrange(year) %>% 
-  data.frame(., row.names = 1) %>% 
-  set_names(., c(as.character(catch_by_age$age %>% unique)))
+  #arrange(year) %>% 
+  #data.frame(., row.names = 1) %>% 
+  #set_names(., c(as.character(catch_by_age$age %>% unique)))
 
 #read_csv('https://data.hafro.is/assmt/2018/cod/smb_weights.csv') %>% 
-  #tmp_fun() %>% 
+  tmp_fun() #%>%  will put below as argument to tmp_fun
   ## add missing ages and years using catch weights
   #(function(x){rbind(cw[1:30,],
   #                   cbind(x,cw[-c(1:30),-c(1:9)]))
@@ -168,7 +168,14 @@ sw <-
 
 
 ## Maturity at age
-mo <- read_csv('https://data.hafro.is/assmt/2018/cod/maturity.csv')  %>% 
-  tmp_fun() %>% 
-  cbind(`1`=0,`2`=0,.)
+mo <- 
+  read_csv(paste0(res_dir,'/','maturity.csv')) %>% 
+  #read_csv('https://data.hafro.is/assmt/2018/cod/maturity.csv')  %>% 
+  bind_rows(catch_by_age %>% 
+              select(age, Year = year, mat) %>% 
+              spread(key = age, value = mat) %>% 
+              mutate_all(~ifelse(is.na(.), -1, .))  
+  ) %>%  
+  tmp_fun() #%>% #will put cbind options as argument to tmp_fun
+  #cbind(`1`=0,`2`=0,.)
 }
