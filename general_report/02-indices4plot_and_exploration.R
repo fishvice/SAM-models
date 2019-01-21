@@ -1,10 +1,13 @@
 library(patchwork)
 library(knitr)
 library(kableExtra)
+library(gridExtra)
+#devtools::install_github('thomasp85/patchwork')
 library(patchwork)
 library(forcats)
 library(viridis)
-
+#devtools::install_github('einarhjorleifsson/gisland')
+library(gisland)
 
 ####-------Comparison of indices in 4plot-------#####
 
@@ -22,7 +25,7 @@ if(Sys.info()[['sysname']] == 'Windows'){
 
 
 
-smb.index <- 
+smb.index.tr <- 
   Allaggrsmbindex %>% 
   filter(svaedi == 'Heild', 
          species == Species,
@@ -35,7 +38,7 @@ smb.index <-
          bio.l = bio.staerri*(1-cv.bio.staerri)) %>% 
   as_data_frame()
 
-smh.index <- 
+smh.index.tr <- 
   Allaggrsmhindex %>% 
   filter(svaedi == 'Heild', 
          species == Species,
@@ -52,8 +55,8 @@ smh.index <-
 
 ## total biomass plot
 
-total_bio_plot <- 
-  smb.index %>% 
+total_bio_plot.tr <- 
+  smb.index.tr %>% 
   filter(lengd == cutoffs$total[1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
@@ -68,8 +71,8 @@ total_bio_plot <-
                     filter(lengd == cutoffs$total[1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l))
 ## biomass > 40 cm
-b40_plot <- 
-  smb.index %>% 
+b40_plot.tr <- 
+  smb.index.tr %>% 
   filter(lengd == cutoffs$B40[1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
@@ -82,8 +85,8 @@ b40_plot <-
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## biomass > 60
 
-b60_plot <- 
-  smb.index %>% 
+b60_plot.tr <- 
+  smb.index.tr %>% 
   filter(lengd == cutoffs$B60[1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
@@ -96,8 +99,8 @@ b60_plot <-
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## abundance < 30
 
-a30_plot <- 
-  smb.index %>% 
+a30_plot.tr <- 
+  smb.index.tr %>% 
   filter(lengd == cutoffs$juv[2]) %>% 
   ggplot(aes(ar,fj.minni)) + 
   geom_ribbon(aes(ymin=fj.minni.l,ymax=fj.minni.u),fill='grey') + 
@@ -109,14 +112,6 @@ a30_plot <-
                     filter(lengd == cutoffs$juv[2]), #was 40
                   aes(ar,fj.minni,ymax=fj.minni.u,ymin=fj.minni.l)) 
 
-## 4-plot
-
-four_plot_traditional <- 
-  total_bio_plot + 
-  b40_plot + 
-  b60_plot + 
-  a30_plot + 
-  plot_layout(ncol=2)
 
 
 
@@ -201,6 +196,13 @@ a30_plot <-
                   aes(ar,fj.minni,ymax=fj.minni.u,ymin=fj.minni.l)) 
 
 ## 4-plot
+
+four_plot.tr <- 
+  total_bio_plot.tr + 
+  b40_plot.tr + 
+  b60_plot.tr + 
+  a30_plot.tr + 
+  plot_layout(ncol=2)
 
 four_plot <- 
   total_bio_plot + 

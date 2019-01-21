@@ -10,7 +10,7 @@
 comm_synaflokkur_group <- list('s1')
 surv_synaflokkur <- c(30,35)
 mat_codes <- c(2:100) #IS THIS RIGHT?
-surv_ind <- c('t1s2r1vsurv', 't2s3r1vsurv')
+surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv')
 # all_areas is all possible areas, 
 # global_areas is the full region for consideration for the species
 global_areas <- 101:108 #for haddock
@@ -95,9 +95,12 @@ nu <-
   semi_join(st) %>% 
   filter(tegund == Species) 
 
-#landings data by gear
-landings <- 
+#landings_caa data by gear
+landings_caa <- 
   lods_oslaegt(mar) %>% 
+  full_join(fiskifelag_oslaegt(mar) %>%  #IS THIS RIGHT?
+            filter(!(ar==1991&is.na(skip_nr))) %>% 
+            mutate(veidisvaedi='I')) %>%  
   inner_join(tbl(mar,'husky_gearlist')) %>% 
   rename(vf = geartext) %>% 
   filter(#veidarfaeri == 1,
@@ -105,7 +108,7 @@ landings <-
     ar == tyr,
     veidisvaedi == 'I') %>% 
   group_by(vf) %>% 
-  summarise(landings = sum(magn_oslaegt)) 
+  summarise(landings_caa = sum(magn_oslaegt)) 
 
 #catch data....
 catch <- 
@@ -120,18 +123,18 @@ catch <-
   rename(area = DIVISION) %>% 
   filter(area %in% global_areas) #%>% 
 
-#.... by gear and compared with landings
+#.... by gear and compared with landings_caa
 sc <- 
   catch %>% 
   group_by(vf) %>% 
   summarise(catch = sum(afli)) %>% 
-  left_join(landings)
+  left_join(landings_caa)
 
-#.... corrected by the discrepancy between landings and catch specific to gear types...
+#.... corrected by the discrepancy between landings_caa and catch specific to gear types...
 commcatch <- 
   catch %>% 
   left_join(sc) %>% 
-  mutate(afli = afli*landings/catch) %>% #discrepancy correction
+  mutate(afli = afli*landings_caa/catch) %>% #discrepancy correction
   mutate(synaflokkur_group = 's1') %>% # 'commercial' synaflokkur - helps with later groupings - 
   group_by(vf, man) %>% 
   filter(!is.na(afli)) %>% 
@@ -152,16 +155,16 @@ commcatch_groupings<-
   group_by(index) %>% 
   summarise(catch = sum(catch,na.rm=TRUE))
   
-#total landings
+#total landings_caa
 totcatch <- 
-  landings <- 
+  landings_caa <- 
   lods_oslaegt(mar) %>% 
   filter(fteg == Species,
     ar == tyr,
     veidisvaedi == 'I') %>% 
-  summarise(landings = sum(magn_oslaegt,na.rm=TRUE)) %>% 
+  summarise(landings_caa = sum(magn_oslaegt,na.rm=TRUE)) %>% 
   collect(n=Inf) %>% 
-  .$landings
+  .$landings_caa
 
 #passed globally into function
 st_c <- st %>% collect(n=Inf)   
@@ -173,7 +176,6 @@ le_c <- le %>% collect(n=Inf)
 ###----Define calc_all function to use data defined above----###
 
 
-#should weights be added to some or all data frames?
 #age_minlength argument needs to be updated with appropriate ages and the minimum lengths used to clean the data
 #group arguments need to be updated with the aggregations within which ALKs should be made
 #putting NA in the group column excludes the corresponding data
@@ -334,7 +336,6 @@ calc_all <- function(ind,
       lims <- data.frame(l = age_minlength$minlength[-length(age_minlength$minlength)],
                        u = age_minlength$minlength[-1])   
       distributions <- list()
-      dist.tmp <- list()
               
       #skip years of no survey data  
 #      if(((tyr < 1996 | tyr==2011) & (35 == (synaflokkur_group %>% 
@@ -346,9 +347,14 @@ calc_all <- function(ind,
 #                                            select(synaflokkur) %>%
 #                                            unlist)) %>% any) 
 #         ){
-#     Below should be more general but cover the above subsets
-      if(!(surv_synaflokkur %in% synaflokkur_group) %>% any){
-        
+#     Below should be more general but cover the above subsets. The point is to skip any combos
+#     where there are no data so that calc_index is avoided.
+      if(!((synaflokkur_group %>% 
+            filter(synaflokkur_group==str_sub(ind,start = 3, end = 4)) %>%
+            select(synaflokkur) %>%
+            unlist) %in% (st_ind %>% select(synaflokkur) %>% distinct) %>% any)){
+          
+          dist.tmp <- list()
           dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(age_minlength$age) - 1)
         
         } else {
@@ -367,6 +373,7 @@ calc_all <- function(ind,
         }
           
         if(length(dist.tmp$n)==0){ # likely due to no data
+          dist.tmp <- list()
           dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(age_minlength$age) - 1)
         } 
           

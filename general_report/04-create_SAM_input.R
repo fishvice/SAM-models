@@ -1,5 +1,5 @@
 
-load(paste0(res_dir, '/', tyr, "_", Species,"_catch_at_age.rdata"))
+load(paste0(res_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))
 
 create_previous_years<-TRUE #TRUE if model is run for first time and previous years data needs to be filled in
 
@@ -9,7 +9,7 @@ if(create_previous_years){
   catch_by_age_all <- catch_by_age
   
   #This will take a while
-  for(i in (tyr_current-1):1985){
+  for(i in (tyr_current-1):1950){
     tyr <- i
     print(paste0('beginning ', tyr))
     source('../general_report/03-catch_at_age.R')

@@ -36,6 +36,7 @@ sp_name <-
   select(enskt_heiti) %>% collect() %>% 
   unlist
 
+setwd('/home/pamela/Documents/Hafro/fishvice/SAM-models')
 sp_dir<-paste0(Species, ' - ', sp_name)
 dir.create(file.path(getwd(), sp_dir))
 setwd(file.path(getwd(), sp_dir)) #should work for windows?
@@ -53,7 +54,9 @@ Length.max <- 500                 # Maximum length for indices calculation
 #cutoffs for indices in the 4 corners of the 4-plot
 #this is coded for looping over multiple species
 cutoffs_list<-NULL
-cutoffs_list[[Species]]<-list(total = c(5,500), juv = c(0,30), B40 = c(40,500), B60=c(60,500))
+cutoffs_list[[2]]<-list(total = c( 5,500), juv = c(0,30), B40 = c(40,500), B60=c(60,500)) #haddock
+cutoffs_list[[6]]<-list(total = c(10,500), juv = c(0,40), B40 = c(40,500), B80=c(80,500)) #ling
+cutoffs_list[[8]]<-list(total = c( 5,500), juv = c(0,30), B40 = c(40,500), B60=c(60,500)) #tusk
 cutoffs<-cutoffs_list[[Species]] 
 
 
@@ -193,7 +196,7 @@ husky::gearlist %>%
 #   dbWriteTable(mar,'landed_catch_pre94',.)
 #attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
 
-#add lesa_fiskifelag_oslaegt code here later if necessary
+#add fiskifelag_oslaegt code here later if necessary
 
 dbRemoveTable(mar,paste0(sp_name,'_catch'))
 mar::afli_afli(mar) %>% 
