@@ -32,30 +32,55 @@ if(create_previous_years){
     rename(Year = year)
   write.csv(cw, paste0(res_dir,'/','catch_weights.csv'), row.names = F)
 
-  smb <-
+  smb_n <-
     catch_by_age_all %>% 
     select(age, year, s2_sno) %>% 
     spread(key = age, value = s2_sno) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     rename(Year = year)
-  write.csv(smb, paste0(res_dir,'/','smb.csv'), row.names = F)
+  write.csv(smb_n, paste0(res_dir,'/','smb_n.csv'), row.names = F)
 
-  smh <-
+  smb_b <-
+    catch_by_age_all %>% 
+    select(age, year, s2_sbio) %>% 
+    spread(key = age, value = s2_sbio) %>% 
+    mutate_all(~ifelse(is.na(.), -1, .)) %>% 
+    rename(Year = year)
+  write.csv(smb_b, paste0(res_dir,'/','smb_b.csv'), row.names = F)
+  
+  smh_n <-
     catch_by_age_all %>% 
     select(age, year, s3_sno) %>% 
     spread(key = age, value = s3_sno) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     rename(Year = year)
-  write.csv(smh, paste0(res_dir,'/','smh.csv'))
+  write.csv(smh_n, paste0(res_dir,'/','smh_n.csv'), row.names = F)
 
-  sw <-
+  smh_b <-
+    catch_by_age_all %>% 
+    select(age, year, s3_sbio) %>% 
+    spread(key = age, value = s3_sbio) %>% 
+    mutate_all(~ifelse(is.na(.), -1, .)) %>% 
+    rename(Year = year)
+  write.csv(smh_b, paste0(res_dir,'/','smh_b.csv'), row.names = F)
+  
+  smb_sw <-
     catch_by_age_all %>% 
     select(age, year, s2_swt) %>% 
     spread(key = age, value = s2_swt) %>% 
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     rename(Year = year)
-  write.csv(sw, paste0(res_dir,'/','stock_weights.csv'), row.names = F)
+  write.csv(smb_sw, paste0(res_dir,'/','smb_stock_weights.csv'), row.names = F)
+
+  smh_sw <-
+    catch_by_age_all %>% 
+    select(age, year, s3_swt) %>% 
+    spread(key = age, value = s3_swt) %>% 
+    mutate_all(~ifelse(is.na(.), -1, .)) %>% 
+    rename(Year = year)
+  write.csv(smh_sw, paste0(res_dir,'/','smh_stock_weights.csv'), row.names = F)
   
+  #mat created from all data sources
   mat <-
     catch_by_age_all %>% 
     select(age, year, mat) %>% 

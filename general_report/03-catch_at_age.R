@@ -98,8 +98,9 @@ nu <-
 #landings_caa data by gear
 landings_caa <- 
   lods_oslaegt(mar) %>% 
-  full_join(fiskifelag_oslaegt(mar) %>%  #IS THIS RIGHT?
-            filter(!(ar==1991&is.na(skip_nr))) %>% 
+  filter(ar > 1993) %>% 
+  full_join(fiskifelag_oslaegt(mar) %>%  
+            filter(ar < 1994) %>% 
             mutate(veidisvaedi='I')) %>%  
   inner_join(tbl(mar,'husky_gearlist')) %>% 
   rename(vf = geartext) %>% 
@@ -416,7 +417,7 @@ catch_by_age <-
 # total_FjPerAldur <-
 #  fjallirsynaflokkar1reg %>% 
   dist_and_keys %>% 
-  keep(grepl('s1', names(.))) %>% 
+  keep(grepl(comm_synaflokkur_group[[1]], names(.))) %>% 
   purrr::map(function(x) {as.list(x) %>% keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur')) %>% bind_rows()}) %>% 
 #  purrr::map(unlist) %>% 
 #  purrr::map(t) %>% 
@@ -438,7 +439,7 @@ catch_by_age <-
          ) %>% 
   arrange(age) %>% 
   left_join(dist_and_keys %>% 
-              keep(!grepl('s1', names(.))) %>% 
+              keep(!grepl(comm_synaflokkur_group[[1]], names(.))) %>% 
               purrr::map(function(x) {as.list(x) %>% keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur','WtPerAldur')) %>% bind_rows()}) %>% 
               purrr::map(~mutate(.,age = rownames(.))) %>% 
               bind_rows(.id = 'part') %>%
@@ -538,18 +539,18 @@ catch_by_age<-
 
 #catch <- rep(0,length(fj2016allirsynaflokkar1reg)) 
 catch_results <- rep(0,length(dist_and_keys %>% 
-                                         keep(grepl('s1', names(.))))) 
+                                         keep(grepl(comm_synaflokkur_group[[1]], names(.))))) 
 # for(i in 1:length(fj2016allirsynaflokkar1reg)) 
 #   catch[[i]] <- sum(fj2016allirsynaflokkar1reg[[i]]$BiomassPerAldur)
 # catch <- data.frame(index=names(fj2016allirsynaflokkar1reg),catch=round(catch/1000))
 for(i in 1:length(dist_and_keys %>% 
-                  keep(grepl('s1', names(.))))) 
+                  keep(grepl(comm_synaflokkur_group[[1]], names(.))))) 
   catch_results[[i]] <- sum(dist_and_keys %>% 
-                              keep(grepl('s1', names(.))) %>% 
+                              keep(grepl(comm_synaflokkur_group[[1]], names(.))) %>% 
                               .[[i]] %>% 
                               as.list() %>% 
                               .$BiomassPerAldur)
-catch_results_by_index <- data.frame(index=names(dist_and_keys %>% keep(grepl('s1', names(.)))),catch_res=round(catch_results/1000))
+catch_results_by_index <- data.frame(index=names(dist_and_keys %>% keep(grepl(comm_synaflokkur_group[[1]], names(.)))),catch_res=round(catch_results/1000))
 
 
 commcatch_groupings %>% 
