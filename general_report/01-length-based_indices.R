@@ -10,7 +10,7 @@ dbRemoveTable(mar,paste0('raw_index_calc_',Species))
 by.length <-
   # 1. get survey stations -----------------------------------------------------
 lesa_stodvar(mar) %>%
-  filter(synaflokkur %in% Synaflokkur) %>%
+  filter(synaflokkur %in% Index_Synaflokkur) %>%
   mutate(index = reitur * 100 + tognumer) %>%
   select(synis_id, ar, index, reitur, smareitur, tognumer, veidarfaeri, toglengd,synaflokkur) %>%
   mutate(gridcell = reitur*10 + smareitur) %>% 
@@ -120,20 +120,20 @@ calc_cv <- function(m, s, area, n) {
 calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)), type = 'by.year'){
   
   #create index table for later
-  ind.tmp <-
-    names(length_ranges) %>% 
-    as.list() %>% 
-    set_names(.,.) %>% 
-    purrr::map(.,function(x){
-      y <-
-        tbl(mar, paste0('raw_index_calc_',Species)) %>%
-        select(lengd) %>%
-        distinct %>% 
-        mutate(ind.tmp = ifelse(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2], 1, 0)) %>% 
-        collect(n=Inf)
-      #      names(y)[2] <- x
+  # ind.tmp <-
+  #   names(length_ranges) %>% 
+  #   as.list() %>% 
+  #   set_names(.,.) %>% 
+  #   purrr::map(.,function(x){
+  #     y <-
+  #       tbl(mar, paste0('raw_index_calc_',Species)) %>%
+  #       select(lengd) %>%
+  #       distinct %>% 
+  #       mutate(ind.tmp = ifelse(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2], 1, 0)) %>% 
+  #       collect(n=Inf)
+  #     #      names(y)[2] <- x
       #      return(y)
-    }) #%>% 
+  #  }) #%>% 
   #Reduce(function(...) merge(..., by='lengd', all.x=TRUE), .)
   
   #This part is skipped because 01-length-based_indices.R produces values that are
@@ -162,8 +162,8 @@ calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)
     tbl(mar, paste0('raw_index_calc_',Species)) %>% 
     
     # 9. filter stations ---------------------------------------------------------  
-  filter((synaflokkur == Synaflokkur[1] & tognumer %in% Tognumer[[1]]) | 
-           (synaflokkur == Synaflokkur[2] & tognumer %in% Tognumer[[2]])) %>%  #IS THIS NECESSARY? 
+  filter((synaflokkur == Index_Synaflokkur[1] & tognumer %in% Index_Tognumer[[1]]) | 
+           (synaflokkur == Index_Synaflokkur[2] & tognumer %in% Index_Tognumer[[2]])) %>%  #IS THIS NECESSARY? 
     
     # 10. summarise by strata ----------------------------------------------------
   # 10.a  Get the strata for each station - already done when calculating raw_index_calc table
@@ -182,11 +182,17 @@ calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)
   
   
   by.year <- 
-    names(ind.tmp) %>% 
+    names(length_ranges) %>% 
     as.list() %>% 
     set_names(.,.) %>% 
     purrr::map(function(x){
       by.strata %>% 
+        #subset by length range
+        # left_join(tbl(mar, paste0('raw_index_calc_',Species)) %>%
+        #             select(lengd) %>%
+        #             distinct %>% 
+        #             mutate(ind.tmp = ifelse(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2], 1, 0))) %>%
+        filter(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2]) %>%
         # ----------------------------------------------------------------------------
       # Up to now we only have been operating within Oracle. I.e. sql-scripts via R.
       # Have to collect here because of calc_cv function in the year aggregate step
@@ -196,21 +202,23 @@ calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)
       # some data fall outside strata, drop them - needs some double checking of code
       drop_na() %>% 
         # subset by index groups------------------------------------------------
-      left_join(ind.tmp[[x]]) %>% 
-        filter(ind.tmp==1) %>% 
+      #left_join(ind.tmp[[x]]) %>% 
+      #  filter(ind.tmp==1) %>% 
         # 11. summarise by year ------------------------------------------------------
       group_by(tegund, synaflokkur, ar) %>%
-        summarise(n = sum(n_m, na.rm = TRUE),
+      summarise(n = sum(n_m, na.rm = TRUE),
                   # A la Höski
                   n.cv = calc_cv(n_m, n_d, area, sN),
                   b = sum(b_m, na.rm = TRUE),
                   # A la Höski
                   b.cv = calc_cv(b_m, b_d, area, sN),
                   ml = mean(lengd, na.rm = TRUE)) %>%
-        mutate(index = x) %>% 
-        ungroup()
+      mutate(index = x) %>% 
+      ungroup()
     }) %>% 
     bind_rows(.)
   
   if(type=='by.year'){return(by.year)} else {return(by.strata)} 
 }
+
+#calc_index(mar)

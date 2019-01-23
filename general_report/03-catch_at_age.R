@@ -78,6 +78,9 @@ kv <-
   semi_join(st) %>% 
   select(synis.id,lengd,aldur,kyn,kynthroski,slaegt,oslaegt) %>% 
   filter(!is.na(aldur)) %>% 
+  left_join( tbl(mar,paste0('age_minlength_',Species)) %>% 
+               mutate(aldur = age)) %>% 
+  filter(lengd>minlength) %>% 
   mutate(fjoldi = 0.001) #initial weighted contribution to forming the ALK - 
                         #using all age measurements have a really small weight as a baseline
 
@@ -156,10 +159,13 @@ commcatch_groupings<-
   group_by(index) %>% 
   summarise(catch = sum(catch,na.rm=TRUE))
   
-#total landings_caa
+#total landings for that year
 totcatch <- 
-  landings_caa <- 
   lods_oslaegt(mar) %>% 
+  filter(ar > 1993) %>% 
+  full_join(fiskifelag_oslaegt(mar) %>%  
+              filter(ar < 1994) %>% 
+              mutate(veidisvaedi='I')) %>%  
   filter(fteg == Species,
     ar == tyr,
     veidisvaedi == 'I') %>% 
@@ -319,7 +325,7 @@ calc_all <- function(ind,
   
   #create keys and output
   keys <- MakeAlk(kv_ind,Species,kynth=F,
-                  lengd=age_minlength$minlength,aldur=age_minlength$age,
+                  lengd=LEN,aldur=AGE,
                   Stodvar=st_c,
                   FilterAldurLengd=FALSE)
   ###distributions formed differently based on from catch or surveys
@@ -328,14 +334,14 @@ calc_all <- function(ind,
                       purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any)
     {
     distributions <- MakeLdist(Species,
-                               lengd=age_minlength$minlength,
+                               lengd=LEN,
                                Stodvar=st_c,
                                lengdir=le_ind,
                                lengd.thyngd.data=cond_ind,
                                talid=F,afli=afli_ind)
     } else {
-      lims <- data.frame(l = age_minlength$minlength[-length(age_minlength$minlength)],
-                       u = age_minlength$minlength[-1])   
+      lims <- data.frame(l = LEN[-length(LEN)],
+                       u = LEN[-1])   
       distributions <- list()
               
       #skip years of no survey data  
@@ -356,7 +362,7 @@ calc_all <- function(ind,
             unlist) %in% (st_ind %>% select(synaflokkur) %>% distinct) %>% any)){
           
           dist.tmp <- list()
-          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(age_minlength$age) - 1)
+          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(AGE) - 1)
         
         } else {
         
@@ -375,7 +381,7 @@ calc_all <- function(ind,
           
         if(length(dist.tmp$n)==0){ # likely due to no data
           dist.tmp <- list()
-          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(age_minlength$age) - 1)
+          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(AGE) - 1)
         } 
           
         distributions$LDIST.ALLS <- dist.tmp$n 
@@ -574,6 +580,6 @@ commcatch_groupings %>%
 # tmp <- round(catch2016allirsynaflokkar1reg,2)
 
   
-dir.create(paste0(res_dir, '/', 'catch_at_age_rdata'))
+dir.create(paste0(yr_dir, '/', 'catch_at_age_rdata'))
 #save(list=c("catchallirsynaflokkar1reg","fjallirsynaflokkar1reg"),file="cnoallirsynaflokkar.rdata")
-save(list=c("catch_by_age","dist_and_keys"),file=paste0(res_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))
+save(list=c("catch_by_age","dist_and_keys"),file=paste0(yr_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))

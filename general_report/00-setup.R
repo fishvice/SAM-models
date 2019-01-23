@@ -36,16 +36,21 @@ sp_name <-
   select(enskt_heiti) %>% collect() %>% 
   unlist
 
+
+#categories for making ALK - should be made into a table like age_minlength
+AGE <- 2:14
+LEN <- c(seq(22.5,77.5,by=5),87.5)
+
+
 setwd('/home/pamela/Documents/Hafro/fishvice/SAM-models')
 sp_dir<-paste0(Species, ' - ', sp_name)
 dir.create(file.path(getwd(), sp_dir))
 setwd(file.path(getwd(), sp_dir)) #should work for windows?
-res_dir<-as.character(tyr)
-dir.create(file.path(getwd(), res_dir))
+yr_dir<-as.character(tyr)
+dir.create(file.path(getwd(), yr_dir))
 
-Synaflokkur <- c(30,35)         #for indices
-Tognumer <- list(1:39, 1:75)       #ARE THESE RIGHT?
-
+Index_Synaflokkur <- c(30,35)         #for indices
+Index_Tognumer <- list(1:39, 1:75)       #ARE THESE RIGHT?
 
 Length.min <- 5                   # Minimum length for indices calculation
 Length.max <- 500                 # Maximum length for indices calculation
