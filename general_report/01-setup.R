@@ -28,20 +28,13 @@ recreate_helper_tables <- FALSE #helper tables should only need to be created on
 # ------------------------------------------------------------------------------
 # Variable stuff
 
-tyr <- 2018
-Species <- 2                    # Select a species
 sp_name <- 
   lesa_tegundir(mar) %>% 
   filter(tegund==Species) %>% 
   select(enskt_heiti) %>% collect() %>% 
   unlist
 
-
-#categories for making ALK - should be made into a table like age_minlength
-AGE <- 2:14
-LEN <- c(seq(22.5,77.5,by=5),87.5)
-
-
+#set up directories
 setwd('/home/pamela/Documents/Hafro/fishvice/SAM-models')
 sp_dir<-paste0(Species, ' - ', sp_name)
 dir.create(file.path(getwd(), sp_dir))
@@ -49,11 +42,23 @@ setwd(file.path(getwd(), sp_dir)) #should work for windows?
 yr_dir<-as.character(tyr)
 dir.create(file.path(getwd(), yr_dir))
 
-Index_Synaflokkur <- c(30,35)         #for indices
-Index_Tognumer <- list(1:39, 1:75)       #ARE THESE RIGHT?
+#Set species-specific parameters (done for haddock so far)
 
-Length.min <- 5                   # Minimum length for indices calculation
-Length.max <- 500                 # Maximum length for indices calculation
+#Basic dimensions for ALK 
+#age and min length possible for that age
+data.frame(age=1:14,minlength=15+2.5*(1:14)) %>% 
+  dbWriteTable(mar,paste0('age_minlength_',2),.,overwrite=TRUE)
+
+ldist_bins <- NULL
+  ldist_bins[[2]] <- c(seq(22.5,77.5,by=5),87.5)
+
+Index_Synaflokkur <- Index_Tognumer <- NULL
+Index_Synaflokkur[[2]] <- c(30,35)         #for including which surveys to make indices from
+Index_Tognumer[[2]] <- list(1:39, 1:75)       #and corresponding townumbers - ARE THESE RIGHT?
+
+Length.min <- Length.max <- NULL
+Length.min[[2]] <- 5                   # Minimum length for indices calculation
+Length.max[[2]] <- 500                 # Maximum length for indices calculation
 
 #for script 03-indices4plot.R
 #cutoffs for indices in the 4 corners of the 4-plot
@@ -175,7 +180,7 @@ husky::gearlist %>%
 
 }
 
-#Catch tables need to be rerun every year
+#Catch tables need to be rerun every year - used in figures
 # ------------------------------------------------------------------------------
 ###----TOTAL CATCH ----###
 

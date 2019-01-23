@@ -3,24 +3,23 @@
 #Note this script is needed to generate ALK for a single year (tyr). When setting up a model for the first time,
 #it will be necessary to run this for all years, then each year thereafter just the final year can be run.
 
+# all_areas is all possible areas, should be replaced within species section if necessary
+all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
+
 # ------------------------------------------------------------------------------
 ###----VARIABLE SETTINGS FOR PRODUCING ALK----###
 #these are inputs to the function below used to create keys within each defined grouping
 
+if(Species==2){
+  #parameterized for haddock
+  
 comm_synaflokkur_group <- list('s1')
-surv_synaflokkur <- c(30,35)
 mat_codes <- c(2:100) #IS THIS RIGHT?
-surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv')
-# all_areas is all possible areas, 
+surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
+#above should correspond with below group helper tables
 # global_areas is the full region for consideration for the species
 global_areas <- 101:108 #for haddock
-all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
 
-#Basic information for ALK - age and min length possible for that age
-data.frame(age=1:14,minlength=15+2.5*(1:14)) %>% 
-  dbWriteTable(mar,paste0('age_minlength_',Species),.,overwrite=TRUE)
-
-#done for haddock
 #Aggregations needed by which ALK will be specific
 month_group <-data.frame(month = 1:12, month_group = c(rep('t1',5),rep('t2',7)))
 GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
@@ -51,6 +50,7 @@ cond_group<-expand.grid(condition = 0.00885,
 ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                   area_group = 'r1',
                   vf_group = unique(vf_group$vf_group))
+}
 
 # ------------------------------------------------------------------------------
 ###----Gather catch, age, length data----###
@@ -63,7 +63,7 @@ st <-
   #inner_join(tbl(mar,'husky_gearlist')) %>% #AT THIS STEP SURVEY DATA ARE REMOVED???
   left_join(tbl(mar,'husky_gearlist')) %>%  
   rename(vf = geartext) %>% 
-  mutate(vf = ifelse(synaflokkur %in% surv_synaflokkur, 'vsurv', vf)) %>% 
+  mutate(vf = ifelse(synaflokkur %in% Index_Synaflokkur[[Species]], 'vsurv', vf)) %>% 
   inner_join(tbl(mar,'reitmapping_original')) %>% 
   rename(area = DIVISION) %>% 
   filter(area %in% global_areas) %>% 
@@ -187,8 +187,8 @@ le_c <- le %>% collect(n=Inf)
 #group arguments need to be updated with the aggregations within which ALKs should be made
 #putting NA in the group column excludes the corresponding data
 calc_all <- function(ind, 
-                     comm_synaflokkur_group = list('s1'),
-                     surv_synaflokkur = c(30,35),
+                     comm_synaflokkur_group = comm_synaflokkur_group,
+                     surv_synaflokkur = Index_Synaflokkur[[Species]],
                      #ind refers to the name of one of many specific combos of man/GRIDCELL/area/vf combinations that are made by later arguments
  ###---These '_group' arguments define groupings by which each ALK and distribution should be split
                      month_group = data.frame(month = 1:12, 
@@ -325,7 +325,7 @@ calc_all <- function(ind,
   
   #create keys and output
   keys <- MakeAlk(kv_ind,Species,kynth=F,
-                  lengd=LEN,aldur=AGE,
+                  lengd=ldist_bins[[Species]],aldur=age_minlength$age,
                   Stodvar=st_c,
                   FilterAldurLengd=FALSE)
   ###distributions formed differently based on from catch or surveys
@@ -334,14 +334,14 @@ calc_all <- function(ind,
                       purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any)
     {
     distributions <- MakeLdist(Species,
-                               lengd=LEN,
+                               lengd=ldist_bins[[Species]],
                                Stodvar=st_c,
                                lengdir=le_ind,
                                lengd.thyngd.data=cond_ind,
                                talid=F,afli=afli_ind)
     } else {
-      lims <- data.frame(l = LEN[-length(LEN)],
-                       u = LEN[-1])   
+      lims <- data.frame(l = ldist_bins[[Species]][-length(ldist_bins[[Species]])],
+                       u = ldist_bins[[Species]][-1])   
       distributions <- list()
               
       #skip years of no survey data  
@@ -362,7 +362,7 @@ calc_all <- function(ind,
             unlist) %in% (st_ind %>% select(synaflokkur) %>% distinct) %>% any)){
           
           dist.tmp <- list()
-          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(AGE) - 1)
+          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA,  length(ldist_bins[[Species]])-1)
         
         } else {
         
@@ -381,7 +381,7 @@ calc_all <- function(ind,
           
         if(length(dist.tmp$n)==0){ # likely due to no data
           dist.tmp <- list()
-          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(AGE) - 1)
+          dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA, length(ldist_bins[[Species]])-1)
         } 
           
         distributions$LDIST.ALLS <- dist.tmp$n 
@@ -410,7 +410,7 @@ dist_and_keys <-
   set_names(.,.) %>% 
   purrr::map(calc_all, 
              comm_synaflokkur_group = comm_synaflokkur_group,
-             surv_synaflokkur =surv_synaflokkur,
+             surv_synaflokkur = Index_Synaflokkur[[Species]],
              month_group = month_group, 
              GRIDCELL_group = GRIDCELL_group, 
              area_group = area_group, 
@@ -583,3 +583,4 @@ commcatch_groupings %>%
 dir.create(paste0(yr_dir, '/', 'catch_at_age_rdata'))
 #save(list=c("catchallirsynaflokkar1reg","fjallirsynaflokkar1reg"),file="cnoallirsynaflokkar.rdata")
 save(list=c("catch_by_age","dist_and_keys"),file=paste0(yr_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))
+

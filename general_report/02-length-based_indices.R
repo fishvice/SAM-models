@@ -10,15 +10,15 @@ dbRemoveTable(mar,paste0('raw_index_calc_',Species))
 by.length <-
   # 1. get survey stations -----------------------------------------------------
 lesa_stodvar(mar) %>%
-  filter(synaflokkur %in% Index_Synaflokkur) %>%
+  filter(synaflokkur %in% Index_Synaflokkur[[Species]]) %>%
   mutate(index = reitur * 100 + tognumer) %>%
   select(synis_id, ar, index, reitur, smareitur, tognumer, veidarfaeri, toglengd,synaflokkur) %>%
   mutate(gridcell = reitur*10 + smareitur) %>% 
   # 2. get length data ---------------------------------------------------------
 left_join(lesa_lengdir(mar) %>%
             filter(tegund %in% Species,
-                   lengd >= Length.min,
-                   lengd < Length.max) %>%
+                   lengd >= Length.min[[Species]],
+                   lengd < Length.max[[Species]]) %>%
             group_by(synis_id, tegund, lengd) %>%
             summarise(fjoldi = sum(fjoldi, na.rm = TRUE)),
           by = "synis_id") %>%
@@ -27,7 +27,7 @@ left_join(lesa_lengdir(mar) %>%
 #     TODO: Find a more permanent solution so scripts works for more than
 #           one species (via group_by( ..., tegund))
 mutate(tegund = if_else(is.na(tegund), Species, tegund),
-       lengd  = if_else(is.na(lengd), Length.min, lengd), 
+       lengd  = if_else(is.na(lengd), Length.min[[Species]], lengd), 
        fjoldi = if_else(is.na(fjoldi), 0, fjoldi)) %>%
   
   # 3. get count data ----------------------------------------------------------
@@ -114,10 +114,12 @@ calc_cv <- function(m, s, area, n) {
 #global variables used:
 #Species = Species, Length.min = Length.min, Length.max = Length.max,
 #std.cv = std.cv, std.towlength = std.towlength, min.towlength = min.towlength, 
-#max.towlength = max.towlength, Synaflokkur = Synaflokkur, Tognumer = Tognumer
+#max.towlength = max.towlength, Index_Synaflokkur = Index_Synaflokkur, Index_Tognumer = Index_Tognumer
 
 #lower bound inclusive
-calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)), type = 'by.year'){
+calc_index <- function(mar, 
+                       length_ranges = list(total = c(5,500), juv = c(5,30)), 
+                       type = 'by.year'){
   
   #create index table for later
   # ind.tmp <-
@@ -162,8 +164,8 @@ calc_index <- function(mar, length_ranges = list(total = c(5,500), juv = c(5,30)
     tbl(mar, paste0('raw_index_calc_',Species)) %>% 
     
     # 9. filter stations ---------------------------------------------------------  
-  filter((synaflokkur == Index_Synaflokkur[1] & tognumer %in% Index_Tognumer[[1]]) | 
-           (synaflokkur == Index_Synaflokkur[2] & tognumer %in% Index_Tognumer[[2]])) %>%  #IS THIS NECESSARY? 
+  filter((synaflokkur == Index_Synaflokkur[[Species]][1] & tognumer %in% Index_Tognumer[[Species]][[1]]) | 
+           (synaflokkur == Index_Synaflokkur[[Species]][2] & tognumer %in% Index_Tognumer[[Species]][[2]])) %>%  #IS THIS NECESSARY? 
     
     # 10. summarise by strata ----------------------------------------------------
   # 10.a  Get the strata for each station - already done when calculating raw_index_calc table

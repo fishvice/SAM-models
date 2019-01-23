@@ -16,7 +16,7 @@ if(create_previous_years){
   catch_by_age_all <- catch_by_age
   
   #This will take a while
-  for(i in (tyr_current-2):1981){
+  for(i in (tyr_current-2):1982){
     tyr <- i
     print(paste0('beginning ', tyr))
     source('../general_report/03-catch_at_age.R')
