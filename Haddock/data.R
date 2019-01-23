@@ -92,21 +92,26 @@ dat <- setup.sam.data(surveys=list(smb=smb,smh=smh),
 ## set default settings
 conf <- defcon(dat)
 
+conf$keyVarObs[which(conf$keyVarObs==2)] <- c(4,rep(5,7))
+conf$keyVarObs[which(conf$keyVarObs==1)] <- c(2,rep(3,9))
+conf$keyVarObs[which(conf$keyVarObs==0)] <- c(0,0,rep(1,10))
+
+
 ## define model parameters
 par <- defpar(dat,conf)
 
 ## Fit a model with SAM
-fit <- sam.fit(dat,conf,par) 
+sam_fit <- sam.fit(dat,conf,par) 
 
-ssbplot(fit)
-fbarplot(fit)
-recplot(fit)
-catchplot(fit)
-res <- residuals(fit)
+ssbplot(sam_fit)
+fbarplot(sam_fit)
+recplot(sam_fit)
+catchplot(sam_fit)
+res <- residuals(sam_fit)
 plot(res)
-resp <- procres(fit)
+resp <- procres(sam_fit)
 plot(resp)
-retro <- retro(fit,year=10)
+retro <- retro(sam_fit,year=10)
 plot(retro)
 
 
