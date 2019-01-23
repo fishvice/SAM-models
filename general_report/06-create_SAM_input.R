@@ -108,7 +108,7 @@ if(create_previous_years){
 ## Catch at age 
 cn <- 
   #read_csv('https://data.hafro.is/assmt/2018/cod/catage.csv') %>% 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','catage.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','catage.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, cno) %>% 
@@ -120,7 +120,7 @@ cn <-
 
 ## Catch weight at age
 cw <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','catch_weights.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','catch_weights.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, cwt) %>% 
@@ -130,7 +130,7 @@ cw <-
 
 ## Read the spring survey numbers
 smb_n <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','smb_n.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','smb_n.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, s2_sno) %>% 
@@ -141,7 +141,7 @@ smb_n <-
 ## Read the spring survey biomass
 
 smb_b <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','smb_b.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','smb_b.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, s2_sbio) %>% 
@@ -153,7 +153,7 @@ smb_b <-
 
 ## Autumn survey numbers
 smh_n <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','smh_n.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','smh_n.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, s3_sno) %>% 
@@ -163,7 +163,7 @@ smh_n <-
 
 ## Autumn survey biomass
 smh_b <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','smh_b.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','smh_b.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, s3_sbio) %>% 
@@ -174,7 +174,7 @@ smh_b <-
 
 ## Stock weights from spring survey
 smb_sw <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','smb_stock_weights.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','smb_stock_weights.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, s2_swt) %>% 
@@ -184,7 +184,7 @@ smb_sw <-
   
   ## Stock weights from autumn survey
 smh_sw <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','smh_stock_weights.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','smh_stock_weights.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, s3_swt) %>% 
@@ -195,7 +195,7 @@ smh_sw <-
 
 ## Maturity at age
 mat <- 
-  read_csv(paste0(as.numeric(yr_dir)-1,'/','maturity.csv')) %>% 
+  read_csv(paste0(yr_dir,'/','maturity.csv')) %>% 
   #read_csv('https://data.hafro.is/assmt/2018/cod/maturity.csv')  %>% 
   bind_rows(catch_by_age %>% 
               select(age, Year = year, mat) %>% 

@@ -458,6 +458,7 @@ catch_by_age <-
               mutate(age = as.numeric(age)))
 
 #will be renamed after going through later code to make sure I can recognize it
+#haddock should be srping survey
 mat <-
   kv %>% 
   filter(!is.na(kynthroski), !is.na(aldur)) %>% 

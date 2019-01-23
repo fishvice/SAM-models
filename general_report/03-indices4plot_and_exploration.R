@@ -29,7 +29,7 @@ smb.index.tr <-
   Allaggrsmbindex %>% 
   filter(svaedi == 'Heild', 
          species == Species,
-         fixed == 1) %>% 
+         fixed == 0) %>% 
   mutate(fj.minni = fj.minni/1000,
          fj.minni.u = fj.minni*(1+cv.fj.minni),
          fj.minni.l = fj.minni*(1-cv.fj.minni),
@@ -67,7 +67,7 @@ total_bio_plot.tr <-
   #  geom_point(data=smh.index %>% 
   #               filter(lengd == cutoffs[1]),
   #             aes(ar,bio.staerri)) +
-  geom_pointrange(data=smh.index %>% 
+  geom_pointrange(data=smh.index.tr %>% 
                     filter(lengd == cutoffs$total[1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l))
 ## biomass > 40 cm
@@ -80,7 +80,7 @@ b40_plot.tr <-
   theme_light() +
   labs(x='',y=paste0('Biomass > ',cutoffs$B40[1])) +
   expand_limits(y=0) +
-  geom_pointrange(data=smh.index %>% 
+  geom_pointrange(data=smh.index.tr %>% 
                     filter(lengd == cutoffs$B40[1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## biomass > 60
@@ -94,7 +94,7 @@ b60_plot.tr <-
   theme_light() +
   labs(x='Year',y=paste0('Biomass > ',cutoffs$B60[1])) +
   expand_limits(y=0) +
-  geom_pointrange(data=smh.index %>% 
+  geom_pointrange(data=smh.index.tr %>% 
                     filter(lengd == cutoffs$B60[1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## abundance < 30
@@ -108,7 +108,7 @@ a30_plot.tr <-
   theme_light() +
   labs(x='Year',y=paste0('Abundance < ',cutoffs$juv[2])) +
   expand_limits(y=0) +
-  geom_pointrange(data=smh.index %>% 
+  geom_pointrange(data=smh.index.tr %>% 
                     filter(lengd == cutoffs$juv[2]), #was 40
                   aes(ar,fj.minni,ymax=fj.minni.u,ymin=fj.minni.l)) 
 
@@ -126,7 +126,7 @@ smb.index <-
          bio.l = b*(1-b.cv)) 
 
 smh.index <- 
-  calc_index(mar) %>% 
+  calc_index(mar, length_ranges = cutoffs) %>% 
   filter(synaflokkur == 35) %>% 
   mutate(fj.minni = n,
          fj.minni.u = n*(1+n.cv),
@@ -210,6 +210,51 @@ four_plot <-
   b60_plot + 
   a30_plot + 
   plot_layout(ncol=2)
+
+
+smb.index.tr %>% 
+  filter(lengd == cutoffs$total[1]) %>% 
+  select(ar, bio.staerri) %>% 
+  left_join(smb.index %>% 
+              filter(index == 'total') %>% 
+              select(ar, b) %>% 
+              mutate(b = b/1000)) %>% 
+  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2)
+
+smh.index.tr %>% 
+  filter(lengd == cutoffs$total[1]) %>% 
+  select(ar, bio.staerri) %>% 
+  left_join(smh.index %>% 
+              filter(index == 'total') %>% 
+              select(ar, b) %>% 
+              mutate(b = b/300)) %>% 
+  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ######------Need to add plots here that demonstrate data availability and spatial coverage
 #to aid in identifying groupings by strata, area, gridcell, gear, and synaflokkur in 03-catch-at-age
@@ -617,4 +662,3 @@ sampling_pos_plot <-
     plot.margin = unit(c(0,0,0,0),'cm'),
     strip.background = element_blank(),
     strip.text.x = element_blank())
-

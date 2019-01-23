@@ -92,10 +92,10 @@ dat <- setup.sam.data(surveys=list(smb=smb,smh=smh),
 ## set default settings
 conf <- defcon(dat)
 
-conf$keyVarObs[which(conf$keyVarObs==2)] <- c(4,rep(5,7))
-conf$keyVarObs[which(conf$keyVarObs==1)] <- c(2,rep(3,9))
-conf$keyVarObs[which(conf$keyVarObs==0)] <- c(0,0,rep(1,10))
-
+conf$keyVarObs[which(conf$keyVarObs==2)] <- c(4,rep(5,7)) #1st age group (age 2) different from rest in autumn survey for variances in estimate
+conf$keyVarObs[which(conf$keyVarObs==1)] <- c(2,rep(3,9)) #same here but for spring survey
+conf$keyVarObs[which(conf$keyVarObs==0)] <- c(0,0,rep(1,10)) # age 1 and 2 different for commercial
+# splitting by 0,1,2,3,4,5 delimits 5 unique variances being estimated across commercial and surveys
 
 ## define model parameters
 par <- defpar(dat,conf)

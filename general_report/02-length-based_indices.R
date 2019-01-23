@@ -223,4 +223,4 @@ calc_index <- function(mar,
   if(type=='by.year'){return(by.year)} else {return(by.strata)} 
 }
 
-#calc_index(mar)
+test <-calc_index(mar)
