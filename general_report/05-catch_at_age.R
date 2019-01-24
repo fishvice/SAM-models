@@ -23,7 +23,8 @@ global_areas <- 101:108 #for haddock
 #Aggregations needed by which ALK will be specific
 month_group <-data.frame(month = 1:12, month_group = c(rep('t1',5),rep('t2',7)))
 GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
-area_group <- data.frame(area = all_areas) %>% mutate(area_group = ifelse(area %in% 102:105, 'r1', 'r2'))
+#area_group <- data.frame(area = all_areas) %>% mutate(area_group = ifelse(area %in% 102:105, 'r1', 'r2'))
+area_group <- data.frame(area = all_areas) %>% mutate(area_group =  'r1')
 #strata_group <- data.frame(strata = NA, strata_group = NA)#- to be implemented later
 #above currently not implemented because strata not joined with catch synis_id
 #but would be nice to do this in the future
@@ -36,12 +37,14 @@ synaflokkur_group <- data.frame(synaflokkur = lesa_stodvar(mar) %>% filter(ar ==
 #NOT IMPLEMENTED YET - because saw an attempt based on a subset synaflokkur = c(1,2,4,8)
 #strata_group <- #NOT IMPLEMENTED YET - because it may be handy at some point to match catches to strata?
 
+
 #Condition matrix to translate from weights. This needs to be as specific as the groups above are defined to.
-cond_group<-expand.grid(condition = 0.00885, 
-                      power = 3.02857, 
+cond_group<-expand.grid(condition = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filter(tegund==Species) %>% select(a) %>% collect %>%  unlist, 
+                      power = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filter(tegund==Species) %>% select(b) %>% collect %>%  unlist, 
                       month_group = c('t1','t2'), 
                       GRIDCELL_group = 'g1', 
-                      area_group = c('r1','r2'), 
+#                      area_group = c('r1','r2'), 
+                      area_group = c('r1'), 
                       vf_group = unique(vf_group$vf_group),
                       synaflokkur_group = unique(synaflokkur_group$synaflokkur_group)) %>% 
   filter((!(synaflokkur_group %in% unlist(comm_synaflokkur_group)) & vf_group == 'vsurv') | (synaflokkur_group %in% unlist(comm_synaflokkur_group) & vf_group != 'vsurv') )
@@ -49,6 +52,8 @@ cond_group<-expand.grid(condition = 0.00885,
 #month_group and synaflokkur_group not included in ref_group because time must be same as ind under consideration
 ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                   area_group = 'r1',
+                  areas = 102:105,
+#                  area_group = c('r1','r2'),
                   vf_group = unique(vf_group$vf_group))
 }
 
@@ -217,6 +222,7 @@ calc_all <- function(ind,
         #month_group and synaflokkur_group not included in ref_group because time must be same as ind under consideration
                   ref_group = list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                                 area_group = unique(area_group),
+                                areas = all_areas,
                                 vf_group = unique(vf_group$vf_group)),
  ###---these arguments are needed for creating ALK
                      age_minlength = tbl(mar,paste0('age_minlength_',Species)) %>% collect(n=Inf) ,
@@ -241,7 +247,7 @@ calc_all <- function(ind,
   ###---- Create reference group that will fill in data when not available (has a low weight which becomes more important when fewer data are available for a group)---###
   #note this could be done outside the function, but may be handy inside for automation
   
-  #reference stations
+  #reference stations - timing and synaflokkur always match
     st_ref <- 
       st_c %>% 
       rename(month = man) %>% 
@@ -254,7 +260,7 @@ calc_all <- function(ind,
       unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>% 
       filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group),
              month_group == str_sub(ind,start=1,end=2), synaflokkur_group == str_sub(ind,start=3,end=4), GRIDCELL_group %in% ref_group$GRIDCELL_group, 
-             area_group %in% ref_group$area_group, vf_group %in% ref_group$vf_group)
+             area_group %in% ref_group$area_group, area %in% ref_group$areas, vf_group %in% ref_group$vf_group)
   
     if(dim(st_ref)[1] < 10){print(paste0('Warning: n of reference group for ', ind, ' is < 10'))} 
     

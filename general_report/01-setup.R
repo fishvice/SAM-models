@@ -53,12 +53,12 @@ ldist_bins <- NULL
   ldist_bins[[2]] <- c(seq(22.5,77.5,by=5),87.5)
 
 Index_Synaflokkur <- Index_Tognumer <- NULL
-Index_Synaflokkur[[2]] <- c(30,35)         #for including which surveys to make indices from
-Index_Tognumer[[2]] <- list(1:39, 1:75)       #and corresponding townumbers - ARE THESE RIGHT?
+Index_Synaflokkur[[1]] <- Index_Synaflokkur[[2]] <- c(30,35)         #for including which surveys to make indices from
+Index_Tognumer[[1]] <- Index_Tognumer[[2]] <- list(1:39, 1:75)       #and corresponding townumbers - ARE THESE RIGHT?
 
 Length.min <- Length.max <- NULL
-Length.min[[2]] <- 5                   # Minimum length for indices calculation
-Length.max[[2]] <- 500                 # Maximum length for indices calculation
+Length.min[[1]] <- Length.min[[2]] <- 5                   # Minimum length for indices calculation
+Length.max[[1]] <- Length.max[[2]] <- 500                 # Maximum length for indices calculation
 
 #for script 03-indices4plot.R
 #cutoffs for indices in the 4 corners of the 4-plot

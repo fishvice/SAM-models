@@ -249,7 +249,9 @@ totfj2016allirsynaflokkar1reg <-
   bind_rows(.id = 'part') %>% 
   as_data_frame() %>% 
   group_by(age) %>% 
-  summarise()
+  summarise(total = sum(V1)) %>% 
+  mutate(age = as.numeric(age)) %>% 
+  arrange(age)
 
 
 totfj2016allirsynaflokkar1reg <- fj2016allirsynaflokkar1reg[[1]]$FjPerAldur        
