@@ -68,7 +68,8 @@ st <-
   #inner_join(tbl(mar,'husky_gearlist')) %>% #AT THIS STEP SURVEY DATA ARE REMOVED???
   left_join(tbl(mar,'husky_gearlist')) %>%  
   rename(vf = geartext) %>% 
-  mutate(vf = ifelse(synaflokkur %in% Index_Synaflokkur[[Species]], 'vsurv', vf)) %>% 
+  mutate(vf = ifelse(synaflokkur %in% Index_Synaflokkur[[Species]], 'vsurv', vf)) %>%
+  filter(vf != 'vsurv') %>% 
   inner_join(tbl(mar,'reitmapping_original')) %>% 
   rename(area = DIVISION) %>% 
   filter(area %in% global_areas) %>% 
@@ -242,7 +243,11 @@ calc_all <- function(ind,
   #apply ALK weight to the all-data scenario
   kv_c<-
     kv_c %>% 
-    mutate(fjoldi = ALK_wts[1])
+    mutate(fjoldi = ifelse(comm_synaflokkur_group %>% 
+                             purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any,
+                           ALK_wts[1],
+                           0)) #kv_c defined as commercial data, gives a weight of 0 if computing for survey index
+  
 
   ###---- Create reference group that will fill in data when not available (has a low weight which becomes more important when fewer data are available for a group)---###
   #note this could be done outside the function, but may be handy inside for automation
