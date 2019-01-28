@@ -5,7 +5,7 @@
 
 
 # A. Data gathering ------------------------------------------------------------
-dbRemoveTable(mar,paste0('raw_index_calc_',Species))
+try(dbRemoveTable(mar,paste0('raw_index_calc_',Species)), silent=TRUE)
 
 by.length <-
   # 1. get survey stations -----------------------------------------------------

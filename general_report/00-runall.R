@@ -1,6 +1,6 @@
 
-tyr <- 2017                    # set last year of data input
-Species <- 2                    # Select a species
+tyr <- 2018                    # set last year of data input
+Species <- 9                    # Select a species
 
 source('../general_report/01-setup.R')
 source('../general_report/02-length-based_indices.R')

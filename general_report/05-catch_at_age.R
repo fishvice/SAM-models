@@ -57,6 +57,44 @@ ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                   vf_group = unique(vf_group$vf_group))
 }
 
+if(Species==9){
+
+  comm_synaflokkur_group <- list('s1')
+
+  mat_codes <- c(2:100) #IS THIS RIGHT?
+
+  surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
+
+  global_areas <- 101:108
+  
+  month_group <-data.frame(month = 1:12, month_group = c(rep('t1',5),rep('t2',7)))
+  
+  GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
+  
+  area_group <- data.frame(area = all_areas) %>% mutate(area_group =  'r1')
+  
+  vf_group <- data.frame(vf = c('vsurv',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist), 
+                         vf_group = c('vsurv',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist))
+  
+  synaflokkur_group <- data.frame(synaflokkur = lesa_stodvar(mar) %>% filter(ar == tyr) %>% select(synaflokkur) %>% distinct %>% collect(n=Inf)) %>% 
+    mutate(synaflokkur_group = ifelse(synaflokkur == 30, 's2',
+                                      ifelse(synaflokkur == 35, 's3', 's1')))
+  
+  cond_group<-expand.grid(condition = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filter(tegund==Species) %>% select(a) %>% collect %>%  unlist, 
+                          power = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filter(tegund==Species) %>% select(b) %>% collect %>%  unlist, 
+                          month_group = c('t1','t2'), 
+                          GRIDCELL_group = 'g1', 
+                          area_group = c('r1'), 
+                          vf_group = unique(vf_group$vf_group),
+                          synaflokkur_group = unique(synaflokkur_group$synaflokkur_group)) %>% 
+    filter((!(synaflokkur_group %in% unlist(comm_synaflokkur_group)) & vf_group == 'vsurv') | (synaflokkur_group %in% unlist(comm_synaflokkur_group) & vf_group != 'vsurv') )
+
+  ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
+                    area_group = 'r1',
+                    areas = 102:105,
+                    vf_group = unique(vf_group$vf_group))
+}
+
 # ------------------------------------------------------------------------------
 ###----Gather catch, age, length data----###
 
@@ -84,7 +122,8 @@ kv <-
   semi_join(st) %>% 
   select(synis.id,lengd,aldur,kyn,kynthroski,slaegt,oslaegt) %>% 
   filter(!is.na(aldur)) %>% 
-  left_join( tbl(mar,paste0('age_minlength_',Species)) %>% 
+  left_join( tbl(mar,'age_minlength') %>%
+               filter(species==Species) %>% 
                mutate(aldur = age)) %>% 
   filter(lengd>minlength) %>% 
   mutate(fjoldi = 0.001) #initial weighted contribution to forming the ALK - 
@@ -226,7 +265,7 @@ calc_all <- function(ind,
                                 areas = all_areas,
                                 vf_group = unique(vf_group$vf_group)),
  ###---these arguments are needed for creating ALK
-                     age_minlength = tbl(mar,paste0('age_minlength_',Species)) %>% collect(n=Inf) ,
+                     age_minlength = tbl(mar,'age_minlength') %>% filter(species==Species) %>% collect(n=Inf) ,
                      ALK_wts = c(0.001, 0.01, 1)
                       ){
 

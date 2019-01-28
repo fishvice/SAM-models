@@ -46,19 +46,21 @@ dir.create(file.path(getwd(), yr_dir))
 
 #Basic dimensions for ALK 
 #age and min length possible for that age
-data.frame(age=1:14,minlength=15+2.5*(1:14)) %>% 
-  dbWriteTable(mar,paste0('age_minlength_',2),.,overwrite=TRUE)
+data.frame(age=1:14,minlength=15+2.5*(1:14), species=2) %>%
+  bind_rows(data.frame(age = 1:23, minlength = 5+2*(1:23), species=9)) %>% 
+  dbWriteTable(mar,'age_minlength',.,overwrite=TRUE)
 
 ldist_bins <- NULL
-  ldist_bins[[2]] <- c(seq(22.5,77.5,by=5),87.5)
+ldist_bins[[2]] <- c(seq(22.5,77.5,by=5),87.5)
+ldist_bins[[9]] <- c(seq(10, 100,by=5),120)
 
 Index_Synaflokkur <- Index_Tognumer <- NULL
-Index_Synaflokkur[[1]] <- Index_Synaflokkur[[2]] <- c(30,35)         #for including which surveys to make indices from
-Index_Tognumer[[1]] <- Index_Tognumer[[2]] <- list(1:39, 1:75)       #and corresponding townumbers - ARE THESE RIGHT?
+Index_Synaflokkur[[1]] <- Index_Synaflokkur[[2]] <- Index_Synaflokkur[[9]] <- c(30,35)         #for including which surveys to make indices from
+Index_Tognumer[[1]] <- Index_Tognumer[[2]] <- Index_Tognumer[[9]] <- list(1:39, 1:75)       #and corresponding townumbers - ARE THESE RIGHT?
 
 Length.min <- Length.max <- NULL
-Length.min[[1]] <- Length.min[[2]] <- 5                   # Minimum length for indices calculation
-Length.max[[1]] <- Length.max[[2]] <- 500                 # Maximum length for indices calculation
+Length.min[[1]] <- Length.min[[2]] <- Length.min[[9]] <- 5                   # Minimum length for indices calculation
+Length.max[[1]] <- Length.max[[2]] <- Length.max[[9]] <- 500                 # Maximum length for indices calculation
 
 #for script 03-indices4plot.R
 #cutoffs for indices in the 4 corners of the 4-plot
@@ -67,6 +69,7 @@ cutoffs_list<-NULL
 cutoffs_list[[2]]<-list(total = c( 5,500), juv = c(0,30), B40 = c(40,500), B60=c(60,500)) #haddock
 cutoffs_list[[6]]<-list(total = c(10,500), juv = c(0,40), B40 = c(40,500), B80=c(80,500)) #ling
 cutoffs_list[[8]]<-list(total = c( 5,500), juv = c(0,30), B40 = c(40,500), B60=c(60,500)) #tusk
+cutoffs_list[[9]]<-list(total = c( 5,500), juv = c(0,40), B60 = c(60,500), B79=c(79,500)) #wolffish
 cutoffs<-cutoffs_list[[Species]] 
 
 
@@ -208,7 +211,7 @@ husky::gearlist %>%
 
 #add fiskifelag_oslaegt code here later if necessary
 
-dbRemoveTable(mar,paste0(sp_name,'_catch'))
+try(dbRemoveTable(mar,paste0(sp_name,'_catch')), silent=TRUE)
 mar::afli_afli(mar) %>% 
   dplyr::filter(tegund == Species) %>%
   dplyr::left_join(afli_afli(mar) %>% 
