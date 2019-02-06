@@ -15,6 +15,7 @@ if(Species==2){
   
 comm_synaflokkur_group <- list('s1')
 mat_codes <- c(2:100) #IS THIS RIGHT?
+mat_surv <- 30
 surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 #above should correspond with below group helper tables
 # global_areas is the full region for consideration for the species
@@ -62,6 +63,8 @@ if(Species==9){
   comm_synaflokkur_group <- list('s1')
 
   mat_codes <- c(2:100) #IS THIS RIGHT?
+  
+  mat_surv <- c(30,35) #IS THIS RIGHT?
 
   surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 
@@ -98,7 +101,7 @@ if(Species==9){
 # ------------------------------------------------------------------------------
 ###----Gather catch, age, length data----###
 
-# all station information 
+# all station information - only commercial to be comparable to Höski's code 
 st <- 
   lesa_stodvar(mar) %>% 
   mutate(GRIDCELL = 10*reitur + smareitur) %>% 
@@ -374,10 +377,29 @@ calc_all <- function(ind,
    unlist()
   
   #create keys and output
+  if(kv_ind$lengd %>% unique %>% length < 4){
+    # for years when there are no data, this just fill in NAs
+    medalle <- (ldist_bins[[Species]][-length(ldist_bins[[Species]])] + ldist_bins[[Species]][-1])/2
+    n <- length(medalle)
+    n1 <- length(age_minlength$age)
+    tmp.data <- data.frame(aldur = rep(age_minlength$age[1], n), lengd = medalle, 
+                           Kynth = rep(0, n), kyn = rep(1, n), fjoldi = rep(0, n))
+    tmp.data <- rbind(tmp.data, data.frame(aldur = age_minlength$age, lengd = rep(medalle[1], 
+                                                                      n1), Kynth = rep(1, n1), kyn = rep(2, n1), fjoldi = rep(0, 
+                                                                                                                              n1)))
+    tmp.data$lenfl <- cut(tmp.data$lengd, breaks = ldist_bins[[Species]])
+    OTH.TOT <- tapply(tmp.data$fjoldi, list(tmp.data$lenfl, tmp.data$aldur), 
+                      sum)
+    OTH.TOT[,] <- NA
+    
+    keys <- list(ALK.TOT = OTH.TOT)
+
+  } else {
   keys <- MakeAlk(kv_ind,Species,kynth=F,
                   lengd=ldist_bins[[Species]],aldur=age_minlength$age,
                   Stodvar=st_c,
                   FilterAldurLengd=FALSE)
+  }
   ###distributions formed differently based on from catch or surveys
   ###These will need to be modified if distributions should be 'kyn' or 'kynth'-based
   if(comm_synaflokkur_group %>% 
@@ -508,10 +530,13 @@ catch_by_age <-
               mutate(age = as.numeric(age)))
 
 #will be renamed after going through later code to make sure I can recognize it
-#haddock should be srping survey
+
 mat <-
-  kv %>% 
-  filter(!is.na(kynthroski), !is.na(aldur)) %>% 
+  lesa_kvarnir(mar) %>% 
+  filter(tegund == Species, !is.na(kynthroski), !is.na(aldur)) %>% 
+  semi_join(lesa_stodvar(mar) %>% 
+            filter(ar == tyr)  %>%
+            filter(synaflokkur %in% mat_surv)) %>% 
   mutate(Mature = ifelse(kynthroski %in% mat_codes, 'Mat', 'Imm')) %>% 
   group_by(aldur,Mature) %>% 
   summarise(m_n = n()) %>% 

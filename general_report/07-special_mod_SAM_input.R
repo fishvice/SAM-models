@@ -1,6 +1,16 @@
 #This script is for including species-specific modifications to SAM input that was created
 #with 04-create_SAM_input
 
+cn     <- read_csv(paste0(yr_dir,'/','catage.csv'))
+cw     <- read_csv(paste0(yr_dir,'/','catch_weights.csv'))
+smb_n  <- read_csv(paste0(yr_dir,'/','smb_n.csv'))
+smb_b  <- read_csv(paste0(yr_dir,'/','smb_b.csv'))
+smh_n  <- read_csv(paste0(yr_dir,'/','smh_n.csv'))
+smh_b  <- read_csv(paste0(yr_dir,'/','smh_b.csv'))
+smb_sw <- read_csv(paste0(yr_dir,'/','smb_stock_weights.csv'))
+smh_sw <- read_csv(paste0(yr_dir,'/','smh_stock_weights.csv'))
+mat    <- read_csv(paste0(yr_dir,'/','maturity.csv'))
+
 if(Species==2){
 
   cw <-
@@ -28,6 +38,32 @@ if(Species==2){
   
 }
 
+if(Species==9){
+  
+  cw <-
+    cw %>% 
+    (function(x) x/1000)
+  
+  smb_sw <-
+    smb_sw %>% 
+    (function(x) x/1000) %>% 
+    ## add missing ages and years using catch weights
+    (function(x){bind_rows(cw[1:3,],
+                           x[-c(1:3),])})
+  smh_sw <-
+    smh_sw %>% 
+    (function(x) x/1000) %>% 
+    (function(x){bind_rows(smb_sw[1:14,],
+                           x[-c(1:14),])})
+  mat <- 
+    mat %>% 
+    mutate_all(~ifelse(. == -1, 1, .)) %>% 
+    mutate('11' = ifelse('11' < 0.9, 1, '11'),
+           '12' = ifelse('12' < 0.9, 1, '12'),
+           '13' = ifelse('13' < 0.9, 1, '13'))
+  
+  
+}
 
 #Convert all to SAM format
 
