@@ -53,7 +53,7 @@ cond_group<-expand.grid(condition = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filt
 #month_group and synaflokkur_group not included in ref_group because time must be same as ind under consideration
 ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                   area_group = 'r1',
-                  areas = 102:105,
+                  areas = global,
 #                  area_group = c('r1','r2'),
                   vf_group = unique(vf_group$vf_group))
 }
@@ -70,7 +70,7 @@ if(Species==9){
 
   global_areas <- 101:108
   
-  month_group <-data.frame(month = 1:12, month_group = c(rep('t1',5),rep('t2',7)))
+  month_group <-data.frame(month = 1:12, month_group = c(rep('t1',6),rep('t2',6)))
   
   GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
   
@@ -94,7 +94,7 @@ if(Species==9){
 
   ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                     area_group = 'r1',
-                    areas = 102:105,
+                    areas = global_areas,
                     vf_group = unique(vf_group$vf_group))
 }
 
@@ -110,7 +110,7 @@ st <-
   left_join(tbl(mar,'husky_gearlist')) %>%  
   rename(vf = geartext) %>% 
   mutate(vf = ifelse(synaflokkur %in% Index_Synaflokkur[[Species]], 'vsurv', vf)) %>%
-  filter(vf != 'vsurv') %>% 
+  #filter(vf != 'vsurv') %>% #this will make it closer to Höski's code but at the expense of the following being generalized to both commercial and survey
   inner_join(tbl(mar,'reitmapping_original')) %>% 
   rename(area = DIVISION) %>% 
   filter(area %in% global_areas) %>% 
@@ -448,7 +448,10 @@ calc_all <- function(ind,
                          filter(synaflokkur_group == str_sub(ind,start = 3, end = 4)) %>% 
                          select(synaflokkur) %>% 
                          unlist
-                ), silent = T)
+                ) %>% 
+                right_join(lims %>% 
+                             mutate(index = as.character(l)) %>% 
+                             select(index)), silent = T)
         }
           
         if(length(dist.tmp$n)==0){ # likely due to no data
@@ -489,14 +492,20 @@ dist_and_keys <-
              vf_group = vf_group, 
              synaflokkur_group = synaflokkur_group, 
              cond_group = cond_group, 
-             ref_group = ref_group)
+             ref_group = ref_group,
+             age_minlength = tbl(mar,'age_minlength') %>% filter(species==Species) %>% collect(n=Inf) ,
+             ALK_wts = c(0.001, 0.01, 1))
 
 catch_by_age <- 
 # total_FjPerAldur <-
 #  fjallirsynaflokkar1reg %>% 
   dist_and_keys %>% 
   keep(grepl(comm_synaflokkur_group[[1]], names(.))) %>% 
-  purrr::map(function(x) {as.list(x) %>% keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur')) %>% bind_rows()}) %>% 
+  purrr::map(function(x) {
+    as.list(x) %>% 
+      keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur')) %>%
+      bind_rows()
+    }) %>% 
 #  purrr::map(unlist) %>% 
 #  purrr::map(t) %>% 
 #  purrr::map(as.data.frame) %>%
@@ -518,7 +527,11 @@ catch_by_age <-
   arrange(age) %>% 
   left_join(dist_and_keys %>% 
               keep(!grepl(comm_synaflokkur_group[[1]], names(.))) %>% 
-              purrr::map(function(x) {as.list(x) %>% keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur','WtPerAldur')) %>% bind_rows()}) %>% 
+              purrr::map(function(x) {
+                as.list(x) %>% 
+                  keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur','WtPerAldur')) %>% 
+                  bind_rows()
+                }) %>% 
               purrr::map(~mutate(.,age = rownames(.))) %>% 
               bind_rows(.id = 'part') %>%
               mutate(part = str_sub(part, 3,4)) %>% 
