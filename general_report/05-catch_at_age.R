@@ -402,6 +402,8 @@ calc_all <- function(ind,
   }
   ###distributions formed differently based on from catch or surveys
   ###These will need to be modified if distributions should be 'kyn' or 'kynth'-based
+  
+  print(ind)
   if(comm_synaflokkur_group %>% 
                       purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any)
     {

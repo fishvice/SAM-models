@@ -1,7 +1,7 @@
 
-load(paste0(yr_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))
+#load(paste0(yr_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))
 
-create_previous_years<-TRUE #TRUE if model is run for first time and previous years data needs to be filled in
+create_previous_years<-FALSE #TRUE if model is run for first time and previous years data needs to be filled in
 
 if(create_previous_years){
   
@@ -114,7 +114,7 @@ cn <-
               spread(key = age, value = cno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
               ) 
-write.csv(mat, paste0(yr_dir,'/','catage.csv'), row.names = F)
+write.csv(cn, paste0(yr_dir,'/','catage.csv'), row.names = F)
 
 
 ## Catch weight at age
@@ -126,7 +126,7 @@ cw <-
               spread(key = age, value = cwt) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
-write.csv(mat, paste0(yr_dir,'/','catch_weights.csv'), row.names = F)
+write.csv(cw, paste0(yr_dir,'/','catch_weights.csv'), row.names = F)
 
 ## Read the spring survey numbers
 smb_n <- 
@@ -137,7 +137,7 @@ smb_n <-
               spread(key = age, value = s2_sno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
-write.csv(mat, paste0(yr_dir,'/','smb_n.csv'), row.names = F)
+write.csv(smb_n, paste0(yr_dir,'/','smb_n.csv'), row.names = F)
 
 ## Read the spring survey biomass
 
@@ -149,7 +149,7 @@ smb_b <-
               spread(key = age, value = s2_sbio) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
-write.csv(mat, paste0(yr_dir,'/','smb_b.csv'), row.names = F)
+write.csv(smb_b, paste0(yr_dir,'/','smb_b.csv'), row.names = F)
 
 ## Autumn survey numbers
 smh_n <- 
@@ -160,7 +160,7 @@ smh_n <-
               spread(key = age, value = s3_sno) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
-write.csv(mat, paste0(yr_dir,'/','smh_n.csv'), row.names = F)
+write.csv(smh_n, paste0(yr_dir,'/','smh_n.csv'), row.names = F)
 
 ## Autumn survey biomass
 smh_b <- 
@@ -171,7 +171,7 @@ smh_b <-
               spread(key = age, value = s3_sbio) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
-write.csv(mat, paste0(yr_dir,'/','smh_b.csv'), row.names = F)
+write.csv(smh_b, paste0(yr_dir,'/','smh_b.csv'), row.names = F)
 
 ## Stock weights from spring survey
 smb_sw <- 
@@ -182,7 +182,7 @@ smb_sw <-
               spread(key = age, value = s2_swt) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   )
-write.csv(mat, paste0(yr_dir,'/','smb_stock_weights.csv'), row.names = F)
+write.csv(smb_sw, paste0(yr_dir,'/','smb_stock_weights.csv'), row.names = F)
 
   ## Stock weights from autumn survey
 smh_sw <- 
@@ -193,7 +193,7 @@ smh_sw <-
               spread(key = age, value = s3_swt) %>% 
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
-write.csv(mat, paste0(yr_dir,'/','smh_stock_weights.csv'), row.names = F)
+write.csv(smh_sw, paste0(yr_dir,'/','smh_stock_weights.csv'), row.names = F)
 
 ## Maturity at age
 mat <- 

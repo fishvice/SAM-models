@@ -1,4 +1,53 @@
 
+#Catch and length index tables need to be rerun every year - used in figures
+
+
+# ------------------------------------------------------------------------------
+###----TOTAL CATCH ----###
+
+#NOT WORKING not sure why - but not necessary -replaced with fiskifelag_oslaegt()
+#Get old catch data
+# bind_rows(
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = '^[0-9]+',full.names = TRUE) %>% 
+#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
+#     bind_rows() %>% 
+#     rename_(.dots=stats::setNames(colnames(.),c('vf',	'skip',	'teg',	'ar',	'man',	'hofn',	'magn'))) %>% 
+#     mutate(magn=as.numeric(magn)),
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'ready',full.names = TRUE) %>% 
+#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep='\t')) %>% 
+#     bind_rows() %>% 
+#     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn'))),
+#   list.files('/net/hafkaldi.hafro.is/export/u2/reikn/R/Pakkar/Logbooks/Olddata',pattern = 'afli.[0-9]+$',full.names = TRUE) %>% 
+#     map(~read.table(.,skip=2,stringsAsFactors = FALSE,sep=';')) %>% 
+#     bind_rows()%>% 
+#     rename_(.dots=stats::setNames(colnames(.),c(	'ar','hofn',	'man',	'vf',	'teg', 'magn')))) %>%
+#   filter(!(ar==1991&is.na(skip))) %>% 
+#   mutate(veidisvaedi='I') %>% 
+#   rename(veidarfaeri=vf,skip_nr=skip,magn_oslaegt=magn,fteg=teg) %>% 
+#   dbWriteTable(mar,'landed_catch_pre94',.)
+#attach("/net/hafkaldi.hafro.is/export/u2/reikn/R/SurveyWork/SMB/Stations.rdata")
+
+#add fiskifelag_oslaegt code here later if necessary
+
+try(dbRemoveTable(mar,paste0(sp_name,'_catch')), silent=TRUE)
+mar::afli_afli(mar) %>% 
+  dplyr::filter(tegund == Species) %>%
+  dplyr::left_join(afli_afli(mar) %>% 
+                     dplyr::group_by(visir) %>% 
+                     dplyr::summarise(total=sum(afli,na.rm = TRUE))) %>% 
+  dplyr::inner_join(mar::afli_stofn(mar) %>% 
+                      mutate(gridcell = reitur*10+smareitur)) %>% 
+  dplyr::left_join(mar::afli_toga(mar) %>% 
+                     dplyr::select(visir,togtimi)) %>% 
+  dplyr::left_join(mar::afli_lineha(mar) %>%
+                     dplyr::mutate(hooks = onglar*bjod, nr_net = dregin) %>% 
+                     dplyr::select(visir,hooks, nr_net)) %>% 
+  dplyr::left_join(tbl(mar,'gear_mapping'),by=c('veidarf'='veidarfaeri')) %>% 
+  dplyr::select(id=visir,towtime=togtimi,gear,vessel_nr=skipnr,year=ar,month=man,
+                lat=breidd,lon=lengd,gridcell,depth=dypi,catch=afli,total,hooks,nr_net) %>% 
+  dplyr::mutate(depth = 1.83*depth) %>% #still necessary?
+  compute(name=paste0(sp_name,'_catch'),temporary=FALSE)
+
 
 # ------------------------------------------------------------------------------
 ###--------LENGTH_BASED INDICES-----###
@@ -40,17 +89,17 @@ mutate(fjoldi = fjoldi/1e3) %>%
   #mutate(N = fjoldi / 1e3) %>%   # units of thousand
   
   # 5. trim towlength and ----------------------------------------------------------
-  
-  # 6.a standardize by towlength ------------------------------------------------
-  # this is done within the above skala_med_toglengd
+
+# 6.a standardize by towlength ------------------------------------------------
+# this is done within the above skala_med_toglengd
 #mutate(N = fjoldi / toglengd * std.towlength) %>%      # standardize to per 4 miles
 mar:::skala_med_toglengd(., min_towlength = min.towlength, max_towlength = max.towlength, std_towlength = std.towlength) %>%
   
-# 6.b standardize to area swept
-#     this does not make much sense here because we already have this above
-#     need to pass this function further down in the code path
-#     
-mutate(N = fjoldi / if_else(veidarfaeri == 78 , 1.25 * std.width, std.width)) %>%
+  # 6.b standardize to area swept
+  #     this does not make much sense here because we already have this above
+  #     need to pass this function further down in the code path
+  #     
+  mutate(N = fjoldi / if_else(veidarfaeri == 78 , 1.25 * std.width, std.width)) %>%
   
   # 7. calculate_biomass from numbers, length and a and b ----------------------
 # 7.a get the length weight coefficients
@@ -62,7 +111,7 @@ left_join(tbl_mar(mar, "ops$einarhj.lwcoeff"),
          b = ifelse(is.na(b), 3.00, b),
          B  = ifelse(is.na(N), 0, N) * a * lengd^b / 1e3) %>%
   select(-a, -b) %>% 
-
+  
   
   #Below not really necessary
   # 8. Cumulative calculation
@@ -79,160 +128,5 @@ left_join(tbl_mar(mar, "ops$einarhj.lwcoeff"),
 #tbl(mar, paste0('raw_index_calc_',Species))
 
 
-#####-------Indices created with 01-length-based_indices.R-------#####
-#Calculate CVs
-
-calc_cv <- function(m, s, area, n) {
-  
-  Mean = sum(m * area) / sum(area)
-  Sum = sum(m * area)
-  tmpsum = sum(m[!is.na(s)] * area[!is.na(s)])
-  Calc.sdev = sqrt(sum(s[!is.na(s)]^2 * area[!is.na(s)]^2/  n[!is.na(s)])   / sum(area[!is.na(s)])^2)
-  Sdev = Calc.sdev * Sum/tmpsum
-  cv = Sdev/Mean
-  
-  return(cv)
-}
 
 
-# B. Summarise abundance and biomass by station
-#global variables used:
-#Species = Species, Length.min = Length.min, Length.max = Length.max,
-#std.cv = std.cv, std.towlength = std.towlength, min.towlength = min.towlength, 
-#max.towlength = max.towlength, Index_Synaflokkur = Index_Synaflokkur, Index_Tognumer = Index_Tognumer
-
-#lower bound inclusive
-calc_index <- function(mar, 
-                       length_ranges = list(total = c(5,500), juv = c(5,30)), 
-                       type = 'by.year'){
-  
-  #create index table for later
-  # ind.tmp <-
-  #   names(length_ranges) %>% 
-  #   as.list() %>% 
-  #   set_names(.,.) %>% 
-  #   purrr::map(.,function(x){
-  #     y <-
-  #       tbl(mar, paste0('raw_index_calc_',Species)) %>%
-  #       select(lengd) %>%
-  #       distinct %>% 
-  #       mutate(ind.tmp = ifelse(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2], 1, 0)) %>% 
-  #       collect(n=Inf)
-  #     #      names(y)[2] <- x
-      #      return(y)
-  #  }) #%>% 
-  #Reduce(function(...) merge(..., by='lengd', all.x=TRUE), .)
-  by.year.all <-
-    
-  #This part is skipped because 01-length-based_indices.R produces values that are
-  #summable up through the level of strata - already adjusted for area and # tows, etc.
-  # 8. summarise by station ----------------------------------------------------
-    
-    names(length_ranges) %>% 
-    as.list() %>% 
-    set_names(.,.) %>% 
-    purrr::map(function(x){
-   
-   by.station <- 
-     
-    tbl(mar, paste0('raw_index_calc_',Species)) %>% 
-     filter(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2]) %>%
-     # NOTE: here is the first step where statistics by length is dropped
-     #       some (minor) recoding above would be needed if one were to take things
-     #       forward by each length class
-     group_by(synis_id, synaflokkur,reitur, smareitur, tognumer, veidarfaeri, tegund, ar) %>% 
-     summarise(N = sum(N, na.rm = TRUE)/1000, #bring to same scale as reports
-               B = sum(B, na.rm = TRUE)/1000,
-               ml = mean(lengd, na.rm = TRUE)) %>% 
-     # Zero stations - THOUGHT THIS STEP SHOULD BE REDUNDANT
-     mutate(N = nvl(N,0),
-            B = nvl(B,0)) 
-  
-   
-  
-  # ------------------------------------------------------------------------------
-  # C. Calculate mean and standard deviation of abundance and biomass of stations
-  #    within each strata and raise estimates by the area of the strata
-  
-  by.strata <-
-
-    #tbl(mar, paste0('raw_index_calc_',Species)) %>% 
-    by.station %>% 
-    # 9. filter stations ---------------------------------------------------------  
-    filter((synaflokkur == Index_Synaflokkur[[Species]][1] & tognumer %in% Index_Tognumer[[Species]][[1]]) | 
-           (synaflokkur == Index_Synaflokkur[[Species]][2] & tognumer %in% Index_Tognumer[[Species]][[2]])) %>%  #IS THIS NECESSARY? 
-
-        # 10. summarise by strata ----------------------------------------------------
-  # 10.a  Get the strata for each station - already done when calculating raw_index_calc table
-  left_join(tbl(mar, "SMBSTATIONSSTRATA") %>%
-              select(synis_id, strata =newstrata)) %>%
-    left_join(tbl(mar, "SMHSTATIONSSTRATA") %>%
-                select(synis_id, strata2 =newstrata)) %>%
-    mutate(strata = nvl(strata,strata2)) %>% 
-    select(-strata2) %>% 
-    left_join(tbl(mar, "NEWSTRATAAREA") %>%
-                select(strata = newstrata, area = rall.area) %>%
-                #  area is above is in km2, here convert nm2
-                mutate(area = area / 1.852^2)) %>% 
-    mutate(n = N,
-           b = B) %>% 
-    group_by(tegund, ar, strata, synaflokkur, area) %>% 
-  # 10.b group by year and strata and calculate number of stations, mean and sd
-  summarise(sN  = n(),   # number of stations within strata
-            n_m  = mean(N, na.rm = TRUE), # number of fish
-            n_d  = ifelse(n() == 1, sum(N, na.rm = TRUE) * std.cv, sd(N)),
-            b_m  = mean(B, na.rm = TRUE), # biomass of fish
-            b_d  = ifelse(n() == 1, sum(B, na.rm = TRUE) * std.cv, sd(B)),
-            ml = ifelse(sum(N, na.rm = TRUE)==0, 0, sum(ml*N, na.rm = TRUE) / sum(N, na.rm = TRUE) )  # mean length of fish  
-  ) %>% 
-    #raise by strata
-    mutate(N     = n_m  * area / std.towlength, #this should be absent or also by tow width
-           B     = b_m  * area / std.towlength) #%>% 
-    #BELOW WAS PROBABLY THE PROBLEM - NOT IN EINAR'S CODE
-    #divide by number of tows (?)
-    #mutate(N = N/n_distinct(synis_id),
-    #       B = B/n_distinct(synis_id)) 
-  
-  
-  
-  # ------------------------------------------------------------------------------
-  # D. Summarise data by year
-  
-  
-  by.year <- 
-      by.strata %>% 
-        #subset by length range
-        # left_join(tbl(mar, paste0('raw_index_calc_',Species)) %>%
-        #             select(lengd) %>%
-        #             distinct %>% 
-        #             mutate(ind.tmp = ifelse(lengd >= length_ranges[[x]][1] & lengd < length_ranges[[x]][2], 1, 0))) %>%
-        # ----------------------------------------------------------------------------
-      # Up to now we only have been operating within Oracle. I.e. sql-scripts via R.
-      # Have to collect here because of calc_cv function in the year aggregate step
-      # TODO: Fix that, do internally in Oracle
-      collect(n = Inf) %>% 
-        # ----------------------------------------------------------------------------
-      # some data fall outside strata, drop them - needs some double checking of code
-      drop_na() %>% 
-        # subset by index groups------------------------------------------------
-      #left_join(ind.tmp[[x]]) %>% 
-      #  filter(ind.tmp==1) %>% 
-        # 11. summarise by year ------------------------------------------------------
-      group_by(tegund, synaflokkur, ar) %>%
-      summarise(n = sum(N, na.rm = TRUE),
-                # A la Höski
-                n.cv = calc_cv(n_m, n_d, area, sN),
-                b = sum(B, na.rm = TRUE),
-                # A la Höski
-                b.cv = calc_cv(b_m, b_d, area, sN),
-                ml = ifelse(sum(n_m, na.rm = TRUE)==0, 0, sum(ml*n_m, na.rm = TRUE)/sum(n_m, na.rm=TRUE))) %>%
-      mutate(index = x) %>% 
-      ungroup()
-    }) %>% 
-    bind_rows(.)
-  
-  return(by.year.all)
-  #if(type=='by.year'){return(by.year)} else {return(by.strata)} 
-}
-
-test <-calc_index(mar)
