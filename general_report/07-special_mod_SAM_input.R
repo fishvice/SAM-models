@@ -40,6 +40,13 @@ if(Species==2){
 
 if(Species==9){
   
+  #looks like ALK is not so good prior to 1988... going to use ALK from 1988 to fill in cn and cw data
+  #its possible that length distributions may also not be good prior to 1988 but will see that later
+  #under smb and smb_sw, 1990 data need to be filled in by 1989 data (ALK only? length too?)
+  #or can 1990 survey data be missing? Probably just an ALK problem.
+  #under smh and smh_sw, smb ALK need to be used for most years. (If length data also missing then skip but I think they should be available)
+  #would be nice to have ALKs outputted from 05-catch_at_age script
+
   cw <-
     cw %>% 
     (function(x) x/1000)

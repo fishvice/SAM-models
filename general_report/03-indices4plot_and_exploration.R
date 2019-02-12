@@ -116,7 +116,9 @@ a30_plot.tr <-
 
 
 smb.index <- 
-  calc_index(mar, length_ranges = cutoffs) %>% 
+  calc_index(mar,  
+             total_biomass_length_ranges = cutoffs[[1]],
+             other_length_ranges = cutoffs[c(-1)]) %>% 
   filter(synaflokkur == 30) %>% 
   mutate(fj.minni = n,
          fj.minni.u = n*(1+n.cv),
@@ -126,7 +128,9 @@ smb.index <-
          bio.l = b*(1-b.cv)) 
 
 smh.index <- 
-  calc_index(mar, length_ranges = cutoffs) %>% 
+  calc_index(mar,  
+             total_biomass_length_ranges = cutoffs[[1]],
+             other_length_ranges = cutoffs[c(-1)]) %>% 
   filter(synaflokkur == 35) %>% 
   mutate(fj.minni = n,
          fj.minni.u = n*(1+n.cv),

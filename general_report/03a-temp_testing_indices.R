@@ -57,7 +57,7 @@ smh.index.tr <-
 
 total_bio_plot.tr <- 
   smb.index.tr %>% 
-  filter(lengd == cutoffs$total[1]) %>% 
+  filter(lengd == cutoffs[[1]][1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
   geom_line() + 
@@ -68,55 +68,57 @@ total_bio_plot.tr <-
   #               filter(lengd == cutoffs[1]),
   #             aes(ar,bio.staerri)) +
   geom_pointrange(data=smh.index.tr %>% 
-                    filter(lengd == cutoffs$total[1]),
+                    filter(lengd == cutoffs[[1]][1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l))
 ## biomass > 40 cm
 b40_plot.tr <- 
   smb.index.tr %>% 
-  filter(lengd == cutoffs$B40[1]) %>% 
+  filter(lengd == cutoffs[[3]][1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
   geom_line() + 
   theme_light() +
-  labs(x='',y=paste0('Biomass > ',cutoffs$B40[1])) +
+  labs(x='',y=paste0('Biomass > ',cutoffs[[3]][1])) +
   expand_limits(y=0) +
   geom_pointrange(data=smh.index.tr %>% 
-                    filter(lengd == cutoffs$B40[1]),
+                    filter(lengd == cutoffs[[3]][1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## biomass > 60
 
 b60_plot.tr <- 
   smb.index.tr %>% 
-  filter(lengd == cutoffs$B60[1]) %>% 
+  filter(lengd == cutoffs[[4]][1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
   geom_line() + 
   theme_light() +
-  labs(x='Year',y=paste0('Biomass > ',cutoffs$B60[1])) +
+  labs(x='Year',y=paste0('Biomass > ',cutoffs[[4]][1])) +
   expand_limits(y=0) +
   geom_pointrange(data=smh.index.tr %>% 
-                    filter(lengd == cutoffs$B60[1]),
+                    filter(lengd == cutoffs[[4]][1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## abundance < 30
 
 a30_plot.tr <- 
   smb.index.tr %>% 
-  filter(lengd == cutoffs$juv[2]) %>% 
+  filter(lengd == cutoffs[[2]][2]) %>% 
   ggplot(aes(ar,fj.minni)) + 
   geom_ribbon(aes(ymin=fj.minni.l,ymax=fj.minni.u),fill='grey') + 
   geom_line() + 
   theme_light() +
-  labs(x='Year',y=paste0('Abundance < ',cutoffs$juv[2])) +
+  labs(x='Year',y=paste0('Abundance < ',cutoffs[[2]][2])) +
   expand_limits(y=0) +
   geom_pointrange(data=smh.index.tr %>% 
-                    filter(lengd == cutoffs$juv[2]), #was 40
+                    filter(lengd == cutoffs[[2]][2]), #was 40
                   aes(ar,fj.minni,ymax=fj.minni.u,ymin=fj.minni.l)) 
 
 
 
 
 smb.index <- 
-  calc_index(mar, length_ranges = cutoffs) %>% 
+  calc_index(mar, 
+             total_biomass_length_ranges = cutoffs[[1]],
+             other_length_ranges = cutoffs[c(-1)]) %>% 
   filter(synaflokkur == 30) %>% 
   mutate(fj.minni = n,
          fj.minni.u = n*(1+n.cv),
@@ -126,7 +128,9 @@ smb.index <-
          bio.l = b*(1-b.cv)) 
 
 smh.index <- 
-  calc_index(mar, length_ranges = cutoffs) %>% 
+  calc_index(mar,  
+             total_biomass_length_ranges = cutoffs[[1]],
+             other_length_ranges = cutoffs[c(-1)]) %>% 
   filter(synaflokkur == 35) %>% 
   mutate(fj.minni = n,
          fj.minni.u = n*(1+n.cv),
@@ -140,7 +144,7 @@ smh.index <-
 
 total_bio_plot <- 
   smb.index %>% 
-  filter(index == 'total') %>% 
+  filter(index == names(cutoffs)[1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
   geom_line() + 
@@ -151,70 +155,70 @@ total_bio_plot <-
   #               filter(lengd == cutoffs[1]),
   #             aes(ar,bio.staerri)) +
   geom_pointrange(data=smh.index %>% 
-                    filter(index == 'total'),
+                    filter(index == names(cutoffs)[1]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l))
 ## biomass > 40 cm
 b40_plot <- 
   smb.index %>% 
-  filter(index == 'B40') %>% 
+  filter(index == names(cutoffs)[3]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
   geom_line() + 
   theme_light() +
-  labs(x='',y=paste0('Biomass > ',cutoffs$B40[1])) +
+  labs(x='',y=paste0('Biomass > ',cutoffs[[3]][1])) +
   expand_limits(y=0) +
   geom_pointrange(data=smh.index %>% 
-                    filter(index == 'B40'),
+                    filter(index == names(cutoffs)[3]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## biomass > 60
 
 b60_plot <- 
   smb.index %>% 
-  filter(index == 'B60') %>% 
+  filter(index == names(cutoffs)[4]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 
   geom_line() + 
   theme_light() +
-  labs(x='Year',y=paste0('Biomass > ',cutoffs$B60[1])) +
+  labs(x='Year',y=paste0('Biomass > ',cutoffs[[4]][1])) +
   expand_limits(y=0) +
   geom_pointrange(data=smh.index %>% 
-                    filter(index == 'B60'),
+                    filter(index == names(cutoffs)[4]),
                   aes(ar,bio.staerri,ymax=bio.u,ymin=bio.l)) 
 ## abundance < 30
 
 a30_plot <- 
   smb.index %>% 
-  filter(index == 'juv') %>% 
+  filter(index == names(cutoffs)[2]) %>% 
   ggplot(aes(ar,fj.minni)) + 
   geom_ribbon(aes(ymin=fj.minni.l,ymax=fj.minni.u),fill='grey') + 
   geom_line() + 
   theme_light() +
-  labs(x='Year',y=paste0('Abundance < ',cutoffs$juv[[2]])) +
+  labs(x='Year',y=paste0('Abundance < ',cutoffs[[2]][2])) +
   expand_limits(y=0) +
   geom_pointrange(data=smh.index %>% 
-                    filter(index == 'juv'), #was 40
+                    filter(index == names(cutoffs)[2]), #was 40
                   aes(ar,fj.minni,ymax=fj.minni.u,ymin=fj.minni.l)) 
 
 
 
 smb.index.tr %>% 
-  filter(lengd == cutoffs$total[1]) %>% 
+  filter(lengd == cutoffs[[1]][1]) %>% 
   select(ar, bio.staerri) %>% 
   left_join(smb.index %>% 
-              filter(index == 'total') %>% 
+              filter(index == names(cutoffs)[1]) %>% 
               select(ar, b) %>% 
               mutate(b = b)) %>% 
-  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2)
+  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2, linetype = 2)
 
 smh.index.tr %>% 
-  filter(lengd == cutoffs$total[1]) %>% 
+  filter(lengd == cutoffs[[1]][1]) %>% 
   select(ar, bio.staerri) %>% 
   left_join(smh.index %>% 
-              filter(index == 'total') %>% 
+              filter(index == names(cutoffs)[1]) %>% 
               mutate(b = b) %>% #for cod only
               select(ar, b) 
               ) %>% 
-  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2)
+  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2, linetype = 2)
 
 
 ## 4-plot
@@ -233,6 +237,49 @@ four_plot <-
   a30_plot + 
   plot_layout(ncol=2)
 
-#There are some very minor differences in cv at early years. Otherwise looks good.
+#There are some very minor differences in cv at early years. Otherwise looks good for haddock .
+#CVs are quite a bit smaller - could it be differences in the sN? This should probably be tracked
+#like the sums are and used in the calc.cv function
+
 four_plot
 four_plot.tr
+
+total_plot <- 
+  total_bio_plot.tr + 
+  total_bio_plot + 
+  plot_layout(ncol=1)
+
+b40_plot <- 
+  b40_plot.tr + 
+  b40_plot + 
+  plot_layout(ncol=1)
+
+smb.index.tr %>% 
+  filter(lengd == cutoffs[[1]][1]) %>% 
+  select(ar, bio.staerri) %>% 
+  left_join(smb.index %>% 
+              filter(index == names(cutoffs)[1]) %>% 
+              select(ar, b) %>% 
+              mutate(b = b)) %>% 
+  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2, linetype = 2)
+
+smh.index.tr %>% 
+  filter(lengd == cutoffs[[3]][1]) %>% 
+  select(ar, bio.staerri) %>% 
+  left_join(smh.index %>% 
+              filter(index == names(cutoffs)[3]) %>% 
+              mutate(b = b) %>% #for cod only
+              select(ar, b) 
+  ) %>% 
+  ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2, linetype = 2)
+
+
+b60_plot <-
+  b60_plot.tr + 
+  b60_plot + 
+  plot_layout(ncol=1)
+
+a30_plot <-
+  a30_plot.tr + 
+  a30_plot + 
+  plot_layout(ncol=1)

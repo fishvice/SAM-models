@@ -65,6 +65,8 @@ if(Species==9){
   mat_codes <- c(2:100) #IS THIS RIGHT?
   
   mat_surv <- c(30,35) #IS THIS RIGHT?
+  
+  ALKyr_catch <- 1988
 
   surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 
@@ -101,11 +103,16 @@ if(Species==9){
 # ------------------------------------------------------------------------------
 ###----Gather catch, age, length data----###
 
-# all station information - only commercial to be comparable to Höski's code 
+# all station information - if only commercial then comparable to Höski's code 
 st <- 
   lesa_stodvar(mar) %>% 
   mutate(GRIDCELL = 10*reitur + smareitur) %>% 
-  filter(ar == tyr) %>% 
+  filter(ar %in% c(tyr, ALKyr_catch, ALKyr_surv, LEyr_catch, LEyr_surv)) %>%
+  mutate(tyr = ifelse(ar==tyr, 1,0),
+         ALKyr_catch = ifelse(ar==ALKyr_catch, 1, 0),
+         ALKyr_surv = ifelse(ar==ALKyr_surv, 1, 0),
+         LEyr_catch = ifelse(ar==LEyr_catch, 1, 0),
+         LEyr_surv = ifelse(ar==LEyr_surv, 1, 0)) %>% 
   #inner_join(tbl(mar,'husky_gearlist')) %>% #AT THIS STEP SURVEY DATA ARE REMOVED???
   left_join(tbl(mar,'husky_gearlist')) %>%  
   rename(vf = geartext) %>% 
@@ -122,8 +129,8 @@ kv <-
   lesa_kvarnir(mar) %>% 
   filter(tegund == Species) %>% 
   rename(synis.id = synis_id) %>% 
-  semi_join(st) %>% 
-  select(synis.id,lengd,aldur,kyn,kynthroski,slaegt,oslaegt) %>% 
+  inner_join(st) %>% 
+  select(synis.id,lengd,aldur,kyn,kynthroski,slaegt,oslaegt, tyr, ALKyr_catch, ALKyr_surv, LEyr_catch, LEyr_surv) %>% 
   filter(!is.na(aldur)) %>% 
   left_join( tbl(mar,'age_minlength') %>%
                filter(species==Species) %>% 
@@ -136,14 +143,16 @@ kv <-
 le <- 
   lesa_lengdir(mar) %>% 
   rename(synis.id = synis_id) %>% 
-  semi_join(st) %>% 
+  inner_join(st %>% 
+               select(synis.id, tyr, ALKyr_catch, ALKyr_surv, LEyr_catch, LEyr_surv)) %>% 
   filter(tegund == Species) 
 
 #all number info tha can be matched with st
 nu <- 
   lesa_numer(mar) %>% 
   rename(synis.id = synis_id) %>% 
-  semi_join(st) %>% 
+  inner_join(st %>% 
+               select(synis.id, tyr, ALKyr_catch, ALKyr_surv, LEyr_catch, LEyr_surv)) %>% 
   filter(tegund == Species) 
 
 #landings_caa data by gear
@@ -226,7 +235,6 @@ st_c <- st %>% collect(n=Inf)
 kv_c <- kv %>% collect(n=Inf)
 le_c <- le %>% collect(n=Inf)  
 
-
 # ------------------------------------------------------------------------------
 ###----Define calc_all function to use data defined above----###
 
@@ -269,8 +277,12 @@ calc_all <- function(ind,
                                 vf_group = unique(vf_group$vf_group)),
  ###---these arguments are needed for creating ALK
                      age_minlength = tbl(mar,'age_minlength') %>% filter(species==Species) %>% collect(n=Inf) ,
-                     ALK_wts = c(0.001, 0.01, 1)
-                      ){
+                     ALK_wts = c(0.001, 0.01, 1),
+                     use_alk_catch = FALSE,
+                     use_alk_surv = FALSE,
+                     use_le_catch = FALSE,
+                     use_le_surv = FALSE
+){
 
   if(purrr:::map( list(month_group, GRIDCELL_group, area_group, vf_group, cond_group), 
          function(x){!is.data.frame(x)} ) %>% 
@@ -281,6 +293,10 @@ calc_all <- function(ind,
     print('Warning: month_group and synaflokkur_group names must be no longer than 2 characters')
   }              
 
+  if((ALKyr_catch==1900 & use_alk_catch) | (ALKyr_surv==1900 & use_alk_surv)){
+    print('Reference year has not been set for alternative ALK (ALKyr_ == 1900) yet use_alk_ == TRUE')
+  }              
+  
   ###---- Begin with 'global' data defined external to function:
   #apply ALK weight to the all-data scenario
   kv_c<-
@@ -288,15 +304,31 @@ calc_all <- function(ind,
     mutate(fjoldi = ifelse(comm_synaflokkur_group %>% 
                              purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any,
                            ALK_wts[1],
-                           0)) #kv_c defined as commercial data, gives a weight of 0 if computing for survey index
+                           0)) #kv_c redefined as commercial data, gives a weight of 0 if computing for survey index
   
 
   ###---- Create reference group that will fill in data when not available (has a low weight which becomes more important when fewer data are available for a group)---###
   #note this could be done outside the function, but may be handy inside for automation
   
   #reference stations - timing and synaflokkur always match
-    st_ref <- 
-      st_c %>% 
+  st_le <- st_alk <- st_c %>% filter(tyr==1)
+
+  if((comm_synaflokkur_group %>% 
+     purrr::map(function(x) grepl(x,ind)) %>%
+     unlist %>% any) & use_alk_catch){st_alk <- st_c %>% filter(ALKyr_catch==1)}
+  if(!(comm_synaflokkur_group %>% 
+      purrr::map(function(x) grepl(x,ind)) %>%
+      unlist %>% any) & use_alk_surv){st_alk <- st_c %>% filter(ALKyr_surv==1)}
+
+  if((comm_synaflokkur_group %>% 
+      purrr::map(function(x) grepl(x,ind)) %>%
+      unlist %>% any) & use_le_catch){st_le <- st_c %>% filter(LEyr_catch==1)}
+  if(!(comm_synaflokkur_group %>% 
+       purrr::map(function(x) grepl(x,ind)) %>%
+       unlist %>% any) & use_le_surv){st_le <- st_c %>% filter(LEyr_surv==1)}
+  
+  st_ref <- 
+      st_alk %>% 
       rename(month = man) %>% 
       left_join(month_group) %>% 
       left_join(GRIDCELL_group) %>% 
@@ -338,9 +370,8 @@ calc_all <- function(ind,
       .$catch
   
   #stations for the ind groupings
-  
-   st_ind <- 
-     st_c %>% 
+   st_ind_alk <- 
+     st_alk %>% 
      rename(month = man) %>% 
      left_join(month_group) %>% 
      left_join(GRIDCELL_group) %>% 
@@ -352,13 +383,28 @@ calc_all <- function(ind,
      ungroup() %>% 
      unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>%  
      filter(index == ind)
-    
+  
+   st_ind_le <- 
+     st_le %>% #based on tyr, not ALKyr_catch or ALKyr_surv
+     rename(month = man) %>% 
+     left_join(month_group) %>% 
+     left_join(GRIDCELL_group) %>% 
+     left_join(area_group) %>% 
+     left_join(vf_group) %>% 
+     mutate(vf = ifelse(synaflokkur %in% surv_synaflokkur, 'vsurv', vf)) %>% #
+     left_join(synaflokkur_group) %>%
+     filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group)) %>%       
+     ungroup() %>% 
+     unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group,vf_group),sep = '',remove = FALSE) %>%  
+     filter(index == ind)
+   
   #otolith data for ind-based subset - this has repeat entries with differen weights (fjoldi) for the ALK
   kv_ind <- 
     kv_c %>% 
-    semi_join(st_ind) %>% 
+    semi_join(st_ind_alk) %>% 
     mutate(fjoldi = ALK_wts[3]) %>%  #ind subset data gets the highest weight
-    bind_rows(kv_c) %>%  #lowest weight corresponds to all possible data
+    bind_rows(kv_c %>% 
+                semi_join(st_alk)) %>%  #lowest weight corresponds to all possible data
     bind_rows(kv_ref)       #next highest weight corresponds to 'reference' group
   #the ALK_wts specificaiton should be chosen carefully depending on how much data are actually available and how
   #spread they are among groups
@@ -366,7 +412,7 @@ calc_all <- function(ind,
   #length data for the ind-based subset
   le_ind <- 
     le_c %>% 
-    semi_join(st_ind) 
+    semi_join(st_ind_le) 
   
   #cond data for the ind-based subset
   cond_ind <- 
@@ -444,7 +490,9 @@ calc_all <- function(ind,
                 as.list(lims$l) %>% 
                 set_names(.,.) %>% 
                 purrr::map(function(x) x <- as.vector(unlist(lims[lims$l==x,]))) %>% 
-                calc_index(mar, length_ranges = .) %>% 
+                calc_index(mar, 
+                           total_biomass_length_ranges = cutoffs[[1]],
+                           other_length_ranges = .) %>% 
                 filter(ar == tyr,
                        synaflokkur == synaflokkur_group %>% 
                          filter(synaflokkur_group == str_sub(ind,start = 3, end = 4)) %>% 

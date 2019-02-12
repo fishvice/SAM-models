@@ -54,6 +54,8 @@ ldist_bins <- NULL
 ldist_bins[[2]] <- c(seq(22.5,77.5,by=5),87.5)
 ldist_bins[[9]] <- c(seq(10, 100,by=5),120)
 
+ALKyr_catch <- ALKyr_surv <- LEyr_catch <- LEyr_surv <-1900 #placeholder reference year to fill in good ALK or length data for catch at age or surv
+
 Index_Synaflokkur <- Index_Tognumer <- NULL
 Index_Synaflokkur[[1]] <- Index_Synaflokkur[[2]] <- Index_Synaflokkur[[9]] <- c(30,35)         #for including which surveys to make indices from
 Index_Tognumer[[1]] <- Index_Tognumer[[2]] <- Index_Tognumer[[9]] <- list(1:39, 1:75)       #and corresponding townumbers - ARE THESE RIGHT?
@@ -209,8 +211,10 @@ calc_cv <- function(m, s, area, n) {
 
 #lower bound inclusive
 calc_index <- function(mar, 
-                       length_ranges = list(total = c(5,500), juv = c(5,30)), 
-                       type = 'by.year'){
+                       total_biomass_length_ranges = c(5,500),
+                       other_length_ranges = list(juv = c(5,30))){
+  
+  length_ranges <- c(list(total = total_biomass_length_ranges), other_length_ranges)
   
   #create index table for later
   # ind.tmp <-
@@ -228,7 +232,7 @@ calc_index <- function(mar,
   #      return(y)
   #  }) #%>% 
   #Reduce(function(...) merge(..., by='lengd', all.x=TRUE), .)
-  by.year.all <-
+  by.strata.all <-
     
     #This part is skipped because 01-length-based_indices.R produces values that are
     #summable up through the level of strata - already adjusted for area and # tows, etc.
@@ -281,24 +285,35 @@ calc_index <- function(mar,
                     #  area is above is in km2, here convert nm2
                     mutate(area = area / 1.852^2)) %>% 
         mutate(n = N,
-               b = B) %>% 
+               b = B) %>% #probably unnecessary
         group_by(tegund, ar, strata, synaflokkur, area) %>% 
         # 10.b group by year and strata and calculate number of stations, mean and sd
-        summarise(sN  = n(),   # number of stations within strata
-                  n_m  = mean(N, na.rm = TRUE), # number of fish
-                  n_d  = ifelse(n() == 1, sum(N, na.rm = TRUE) * std.cv, sd(N)),
-                  b_m  = mean(B, na.rm = TRUE), # biomass of fish
-                  b_d  = ifelse(n() == 1, sum(B, na.rm = TRUE) * std.cv, sd(B)),
-                  ml = ifelse(sum(N, na.rm = TRUE)==0, 0, sum(ml*N, na.rm = TRUE) / sum(N, na.rm = TRUE) )  # mean length of fish  
+        # THIS IS VERY CONFUSING HERE... taking the mean results in different answers depending on evenness of fish catch. Summing seems more appropriate, 
+        # then not sure how standard deviation among stations relates to the final standard devation. I believe what's
+        # going on is that the sd per station is based on the total biomass, and just applied to any size range,
+        # since the size range indices in Höski's code were a side calculation using cum sum.
+         summarise(sN  = n(),   # number of stations within strata
+                   n_s = sum(N, na.rm = TRUE), # for scaling up length_dependent portions of the biomass
+                   n_m  = mean(N, na.rm = TRUE), # number of fish
+                   n_d  = ifelse(n() == 1, sum(N, na.rm = TRUE) * std.cv, sd(N)),
+                   b_s  = sum(B, na.rm = TRUE), # for scaling up length_dependent portions of the biomass
+                   b_m  = mean(B, na.rm = TRUE), # biomass of fish
+                   b_d  = ifelse(n() == 1, sum(B, na.rm = TRUE) * std.cv, sd(B)),
+                   ml = ifelse(sum(N, na.rm = TRUE)==0, 0, sum(ml*N, na.rm = TRUE) / sum(N, na.rm = TRUE) )  # mean length of fish  
         ) %>% 
         #raise by strata
-        mutate(N     = n_m  * area / std.towlength, #this should be absent or also by tow width
-               B     = b_m  * area / std.towlength) #%>% 
+        mutate(N     = n_m  * area / std.towlength, #this should be absent or also by tow width 
+               B     = b_m  * area / std.towlength) %>% 
+        mutate(index = x) %>% 
+        collect(n = Inf)
+      #%>% 
+      #above only seems to work for total or juvenile biomass for wolffish - patchiness problem?
       #BELOW WAS PROBABLY THE PROBLEM - NOT IN EINAR'S CODE
       #divide by number of tows (?)
       #mutate(N = N/n_distinct(synis_id),
       #       B = B/n_distinct(synis_id)) 
-      
+    }) %>% 
+    bind_rows(.)
       
       
       # ------------------------------------------------------------------------------
@@ -306,7 +321,16 @@ calc_index <- function(mar,
       
       
       by.year <- 
-        by.strata %>% 
+        by.strata.all %>% 
+        select(-c(n_m, n_d, b_m, b_d, N, B, sN)) %>% #inappropriately calculated for anything but total indices
+        left_join(by.strata.all %>% 
+                    filter(index == 'total') %>% 
+                    select(tegund, ar, strata, synaflokkur, N, B, n_s, b_s, n_m, b_m, n_d, b_d, sN) %>% #this step replaces with mean and standard deviations calculated from total indices
+                    rename(n_s_tot = n_s, b_s_tot = b_s)) %>% 
+        mutate(N_rat = ifelse(n_s_tot==0, 1, n_s/n_s_tot), 
+               N = N*N_rat,# here, N from total index (already scaled up to strata based on n_m) are adjusted by the proportion attributable to a certain length index
+               B_rat = ifelse(b_s_tot==0, 1, b_s/b_s_tot),
+               B= B*B_rat) %>% # now N, B are length-based index dependent, but n_m, b_m, n_d, b_d, sN are based on total index
         #subset by length range
         # left_join(tbl(mar, paste0('raw_index_calc_',Species)) %>%
         #             select(lengd) %>%
@@ -316,7 +340,7 @@ calc_index <- function(mar,
       # Up to now we only have been operating within Oracle. I.e. sql-scripts via R.
       # Have to collect here because of calc_cv function in the year aggregate step
       # TODO: Fix that, do internally in Oracle
-      collect(n = Inf) %>% 
+      #collect(n = Inf) %>% 
         # ----------------------------------------------------------------------------
       # some data fall outside strata, drop them - needs some double checking of code
       drop_na() %>% 
@@ -324,20 +348,17 @@ calc_index <- function(mar,
       #left_join(ind.tmp[[x]]) %>% 
       #  filter(ind.tmp==1) %>% 
       # 11. summarise by year ------------------------------------------------------
-      group_by(tegund, synaflokkur, ar) %>%
-        summarise(n = sum(N, na.rm = TRUE),
+      group_by(tegund, synaflokkur, ar, index) %>%
+        summarise(n = sum(N, na.rm = TRUE), #based on specific index
                   # A la Höski
-                  n.cv = calc_cv(n_m, n_d, area, sN),
-                  b = sum(B, na.rm = TRUE),
+                  n.cv = calc_cv(n_m, n_d, area, sN), # based on total index
+                  b = sum(B, na.rm = TRUE), #based on specific index
                   # A la Höski
-                  b.cv = calc_cv(b_m, b_d, area, sN),
-                  ml = ifelse(sum(n_m, na.rm = TRUE)==0, 0, sum(ml*n_m, na.rm = TRUE)/sum(n_m, na.rm=TRUE))) %>%
-        mutate(index = x) %>% 
+                  b.cv = calc_cv(b_m, b_d, area, sN), # based on total index
+                  ml = ifelse(sum(N, na.rm = TRUE)==0, 0, sum(ml*N, na.rm = TRUE)/sum(N, na.rm=TRUE))) %>%
         ungroup()
-    }) %>% 
-    bind_rows(.)
   
-  return(by.year.all)
+  return(by.year)
   #if(type=='by.year'){return(by.year)} else {return(by.strata)} 
 }
 
