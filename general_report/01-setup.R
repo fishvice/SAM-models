@@ -55,6 +55,9 @@ ldist_bins[[2]] <- c(seq(22.5,77.5,by=5),87.5)
 ldist_bins[[9]] <- c(seq(10, 100,by=5),120)
 
 ALKyr_catch <- ALKyr_surv <- LEyr_catch <- LEyr_surv <-1900 #placeholder reference year to fill in good ALK or length data for catch at age or surv
+use_alk_catch <- use_alk_surv <- use_le_catch <- use_le_surv <- FALSE
+
+
 
 Index_Synaflokkur <- Index_Tognumer <- NULL
 Index_Synaflokkur[[1]] <- Index_Synaflokkur[[2]] <- Index_Synaflokkur[[9]] <- c(30,35)         #for including which surveys to make indices from
@@ -322,10 +325,10 @@ calc_index <- function(mar,
       
       by.year <- 
         by.strata.all %>% 
-        select(-c(n_m, n_d, b_m, b_d, N, B, sN)) %>% #inappropriately calculated for anything but total indices
+        select(-c(n_m, n_d, b_m, b_d, N, B)) %>% #inappropriately calculated for anything but total indices
         left_join(by.strata.all %>% 
                     filter(index == 'total') %>% 
-                    select(tegund, ar, strata, synaflokkur, N, B, n_s, b_s, n_m, b_m, n_d, b_d, sN) %>% #this step replaces with mean and standard deviations calculated from total indices
+                    select(tegund, ar, strata, synaflokkur, N, B, n_s, b_s, n_m, b_m, n_d, b_d) %>% #this step replaces with mean and standard deviations calculated from total indices
                     rename(n_s_tot = n_s, b_s_tot = b_s)) %>% 
         mutate(N_rat = ifelse(n_s_tot==0, 1, n_s/n_s_tot), 
                N = N*N_rat,# here, N from total index (already scaled up to strata based on n_m) are adjusted by the proportion attributable to a certain length index
@@ -351,10 +354,10 @@ calc_index <- function(mar,
       group_by(tegund, synaflokkur, ar, index) %>%
         summarise(n = sum(N, na.rm = TRUE), #based on specific index
                   # A la Höski
-                  n.cv = calc_cv(n_m, n_d, area, sN), # based on total index
+                  n.cv = calc_cv(n_m, n_d, area, sN), # based on total index, except sN which is based on specific index
                   b = sum(B, na.rm = TRUE), #based on specific index
                   # A la Höski
-                  b.cv = calc_cv(b_m, b_d, area, sN), # based on total index
+                  b.cv = calc_cv(b_m, b_d, area, sN), # based on total index, except sN which is based on specific index
                   ml = ifelse(sum(N, na.rm = TRUE)==0, 0, sum(ml*N, na.rm = TRUE)/sum(N, na.rm=TRUE))) %>%
         ungroup()
   

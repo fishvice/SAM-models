@@ -62,11 +62,11 @@ if(Species==9){
 
   comm_synaflokkur_group <- list('s1')
 
-  mat_codes <- c(2:100) #IS THIS RIGHT?
+  mat_codes <- c(3:100) #IS THIS RIGHT?
   
-  mat_surv <- c(30,35) #IS THIS RIGHT?
+  mat_surv <- c(30) #IS THIS RIGHT?
   
-  ALKyr_catch <- 1988
+  if(tyr < 1988) {ALKyr_catch <- 1988; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
 
   surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 
@@ -235,6 +235,7 @@ st_c <- st %>% collect(n=Inf)
 kv_c <- kv %>% collect(n=Inf)
 le_c <- le %>% collect(n=Inf)  
 
+
 # ------------------------------------------------------------------------------
 ###----Define calc_all function to use data defined above----###
 
@@ -293,10 +294,12 @@ calc_all <- function(ind,
     print('Warning: month_group and synaflokkur_group names must be no longer than 2 characters')
   }              
 
-  if((ALKyr_catch==1900 & use_alk_catch) | (ALKyr_surv==1900 & use_alk_surv)){
+  if((ALKyr_catch==1900 & use_alk_catch) | (ALKyr_surv==1900 & use_alk_surv) |
+     (LEyr_catch==1900 & use_le_catch) | (LEyr_surv==1900 & use_le_surv)){
     print('Reference year has not been set for alternative ALK (ALKyr_ == 1900) yet use_alk_ == TRUE')
   }              
-  
+
+
   ###---- Begin with 'global' data defined external to function:
   #apply ALK weight to the all-data scenario
   kv_c<-
@@ -315,17 +318,28 @@ calc_all <- function(ind,
 
   if((comm_synaflokkur_group %>% 
      purrr::map(function(x) grepl(x,ind)) %>%
-     unlist %>% any) & use_alk_catch){st_alk <- st_c %>% filter(ALKyr_catch==1)}
+     unlist %>% any) & use_alk_catch){
+    print(paste0('Using ALK reference year ', ALKyr_catch))
+    st_alk <- st_c %>% filter(ALKyr_catch==1)
+    }
   if(!(comm_synaflokkur_group %>% 
       purrr::map(function(x) grepl(x,ind)) %>%
-      unlist %>% any) & use_alk_surv){st_alk <- st_c %>% filter(ALKyr_surv==1)}
-
+      unlist %>% any) & use_alk_surv){
+    st_alk <- st_c %>% filter(ALKyr_surv==1)
+    print(paste0('Using ALK reference year ', ALKyr_surv))
+    }
   if((comm_synaflokkur_group %>% 
       purrr::map(function(x) grepl(x,ind)) %>%
-      unlist %>% any) & use_le_catch){st_le <- st_c %>% filter(LEyr_catch==1)}
+      unlist %>% any) & use_le_catch){
+    print(paste0('Using LE reference year ', LEyr_catch))
+    st_le <- st_c %>% filter(LEyr_catch==1)
+    }
   if(!(comm_synaflokkur_group %>% 
        purrr::map(function(x) grepl(x,ind)) %>%
-       unlist %>% any) & use_le_surv){st_le <- st_c %>% filter(LEyr_surv==1)}
+       unlist %>% any) & use_le_surv){
+    st_le <- st_c %>% filter(LEyr_surv==1)
+    print(paste0('Using LE reference year ', LEyr_surv))
+    }
   
   st_ref <- 
       st_alk %>% 
@@ -479,7 +493,7 @@ calc_all <- function(ind,
       if(!((synaflokkur_group %>% 
             filter(synaflokkur_group==str_sub(ind,start = 3, end = 4)) %>%
             select(synaflokkur) %>%
-            unlist) %in% (st_ind %>% select(synaflokkur) %>% distinct) %>% any)){
+            unlist) %in% (st_ind_le %>% select(synaflokkur) %>% distinct) %>% any)){
           
           dist.tmp <- list()
           dist.tmp$n <- dist.tmp$b <- dist.tmp$ml <- rep(NA,  length(ldist_bins[[Species]])-1)
@@ -497,11 +511,17 @@ calc_all <- function(ind,
                        synaflokkur == synaflokkur_group %>% 
                          filter(synaflokkur_group == str_sub(ind,start = 3, end = 4)) %>% 
                          select(synaflokkur) %>% 
-                         unlist
-                ) %>% 
+                         unlist) %>% 
                 right_join(lims %>% 
                              mutate(index = as.character(l)) %>% 
-                             select(index)), silent = T)
+                             select(index)) %>% 
+                mutate(n = ifelse(is.na(n), 0, n),
+                       n.cv = ifelse(is.na(n.cv), 0, n.cv),
+                       b = ifelse(is.na(b), 0, b),
+                       b.cv = ifelse(is.na(b.cv), 0, b),
+                       ml = ifelse(is.na(ml), 0, ml)), 
+              silent = T)
+          
         }
           
         if(length(dist.tmp$n)==0){ # likely due to no data
@@ -544,7 +564,11 @@ dist_and_keys <-
              cond_group = cond_group, 
              ref_group = ref_group,
              age_minlength = tbl(mar,'age_minlength') %>% filter(species==Species) %>% collect(n=Inf) ,
-             ALK_wts = c(0.001, 0.01, 1))
+             ALK_wts = c(0.001, 0.01, 1),
+             use_alk_catch = use_alk_catch,
+             use_alk_surv = use_alk_surv,
+             use_le_catch = use_le_catch,
+             use_le_surv = use_le_surv)
 
 catch_by_age <- 
 # total_FjPerAldur <-

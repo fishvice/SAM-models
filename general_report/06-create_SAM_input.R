@@ -1,7 +1,7 @@
 
 #load(paste0(yr_dir, '/', 'catch_at_age_rdata', '/', tyr, "_", Species,"_catch_at_age.rdata"))
 
-create_previous_years<-TRUE #TRUE if model is run for first time and previous years data needs to be filled in
+ #TRUE if model is run for first time and previous years data needs to be filled in
 
 if(create_previous_years){
   
