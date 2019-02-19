@@ -3,9 +3,10 @@
 #Note this script is needed to generate ALK for a single year (tyr). When setting up a model for the first time,
 #it will be necessary to run this for all years, then each year thereafter just the final year can be run.
 
+#--- DEFAULT SETTINGS
 # all_areas is all possible areas, should be replaced within species section if necessary
 all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
-
+mat_codes <- c(2:100); mat_surv <- c(30,35); mat_sex <- c(1,2) #1 = Males, 2 = Femails
 # ------------------------------------------------------------------------------
 ###----VARIABLE SETTINGS FOR PRODUCING ALK----###
 #these are inputs to the function below used to create keys within each defined grouping
@@ -14,7 +15,6 @@ if(Species==2){
   #parameterized for haddock
   
 comm_synaflokkur_group <- list('s1')
-mat_codes <- c(2:100) #IS THIS RIGHT?
 mat_surv <- 30
 surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 #above should correspond with below group helper tables
@@ -53,7 +53,7 @@ cond_group<-expand.grid(condition = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filt
 #month_group and synaflokkur_group not included in ref_group because time must be same as ind under consideration
 ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
                   area_group = 'r1',
-                  areas = global,
+                  areas = global_areas,
 #                  area_group = c('r1','r2'),
                   vf_group = unique(vf_group$vf_group))
 }
@@ -62,12 +62,15 @@ if(Species==9){
 
   comm_synaflokkur_group <- list('s1')
 
-  mat_codes <- c(3:100) #IS THIS RIGHT?
+  mat_codes <- c(3:100) 
   
-  mat_surv <- c(30) #IS THIS RIGHT?
+  mat_surv <- c(35) 
+  
+  mat_sex <- c(2)
   
   if(tyr < 1988) {ALKyr_catch <- 1988; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
-
+  if(tyr %in% c(2015:2017)) {ALKyr_catch <- 2018; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
+  
   surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 
   global_areas <- 101:108

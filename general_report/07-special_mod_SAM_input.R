@@ -192,7 +192,6 @@ if(Species==9){
     mutate(Year = Year*1000) %>% 
     arrange(Year)
     
-
   mat <- 
     mat %>% 
     mutate(`1` = ifelse(`1` == -1, 0, `1`),
@@ -207,7 +206,13 @@ if(Species==9){
     #        `23` = ifelse(`23` == -1, 1, `23`))
   
   mat[mat$Year==1982,2:24] <- mat[mat$Year==1983,2:24] <- mat[mat$Year==1984,2:24] <- mat[mat$Year==1985,2:24]
-  
+
+  #Ásgeir says earlier than 2002 is unreliable maturity data; replacing these with 2002
+  mat[mat$Year==1982,2:24] <- mat[mat$Year==1983,2:24] <- mat[mat$Year==1984,2:24] <- mat[mat$Year==1985,2:24] <- mat[mat$Year==1986,2:24] <-
+    mat[mat$Year==1987,2:24] <- mat[mat$Year==1988,2:24] <- mat[mat$Year==1989,2:24] <- mat[mat$Year==1990,2:24] <- mat[mat$Year==1991,2:24] <-
+    mat[mat$Year==1992,2:24] <- mat[mat$Year==1993,2:24] <- mat[mat$Year==1994,2:24] <- mat[mat$Year==1995,2:24] <- mat[mat$Year==1996,2:24] <-
+    mat[mat$Year==1997,2:24] <- mat[mat$Year==1998,2:24] <- mat[mat$Year==1999,2:24] <- mat[mat$Year==2000,2:24] <- mat[mat$Year==2001,2:24] <-
+    mat[mat$Year==2002,2:24]
   cn_s <- format_SAM(cn, first_year = 1988) #format_SAM(., add_ages = list(`1`=0.001,`2`=0.001)) # could do this here or above
   cw_s <- format_SAM(cw, first_year = 1988) #format_SAM(., add_ages = list(`1`=0,`2`=0)) #could do this here or above
   smb_n_s <- format_SAM(smb_n, first_year = 1988, smb = TRUE)
