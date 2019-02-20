@@ -138,13 +138,13 @@ if(Species==9){
 
   smb_n <-
     smb_n %>% 
-    filter(Year > 1984) %>% 
-    select(-c(`1`)) #should age 1 be excluded? Does it matter?
+    filter(Year > 1984) #%>% 
+    #select(-c(`1`)) #should age 1 be excluded? Does it matter?
   
   smb_b <-
     smb_b %>% 
-    filter(Year > 1984) %>% 
-    select(-c(`1`)) #should age 1 be excluded? Does it matter?
+    filter(Year > 1984) #%>% 
+    #select(-c(`1`)) #should age 1 be excluded? Does it matter?
   
   smh_n <-
     smh_n %>% 
@@ -197,7 +197,8 @@ if(Species==9){
     mutate(`1` = ifelse(`1` == -1, 0, `1`),
            `2` = ifelse(`2` == -1, 0, `2`),
            `3` = ifelse(`3` == -1, 0, `3`),
-           `4` = ifelse(`4` == -1, 0, `4`)) %>% 
+           `4` = ifelse(`4` == -1, 0, `4`),
+           `23` = ifelse(`23` == -1, `22`, `23`)) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) 
     

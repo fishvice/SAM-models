@@ -8,21 +8,21 @@ library(stockassessment)
 ## Additional input data
 
 ## Landing frequency
-lf <- array(1,dim= dim(cn))
-dimnames(lf) <- dimnames(cn)
+lf <- array(1,dim= dim(cn_s))
+dimnames(lf) <- dimnames(cn_s)
 
 ## Proportion F before spawning
-pf <- array(0,dim= dim(cn))
-dimnames(pf) <- dimnames(cn)
+pf <- array(0,dim= dim(cn_s))
+dimnames(pf) <- dimnames(cn_s)
 
 ## Proportion M before spawning
-pm <- array(0,dim= dim(cn))
-dimnames(pm) <- dimnames(cn)
+pm <- array(0,dim= dim(cn_s))
+dimnames(pm) <- dimnames(cn_s)
 
 ## Natural mortality 
 
-nm <- array(0.2,dim= dim(cn))
-dimnames(nm) <- dimnames(cn)
+nm <- array(0.1,dim= dim(cn_s))
+dimnames(nm) <- dimnames(cn_s)
 
 
 ## Prepare input to the SAM call
@@ -67,15 +67,15 @@ par <- defpar(dat,conf)
 fit <- sam.fit(dat,conf,par) 
 
 
-ssbplot(sam_fit)
-fbarplot(sam_fit)
-recplot(sam_fit)
-catchplot(sam_fit)
-res <- residuals(sam_fit)
+ssbplot(fit)
+fbarplot(fit)
+recplot(fit)
+catchplot(fit)
+res <- residuals(fit)
 plot(res)
-resp <- procres(sam_fit)
+resp <- procres(fit)
 plot(resp)
-retro <- retro(sam_fit,year=10)
+retro <- retro(fit,year=10)
 plot(retro)
 
 

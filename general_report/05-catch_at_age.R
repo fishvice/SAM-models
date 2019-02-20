@@ -6,7 +6,7 @@
 #--- DEFAULT SETTINGS
 # all_areas is all possible areas, should be replaced within species section if necessary
 all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
-mat_codes <- c(2:100); mat_surv <- c(30,35); mat_sex <- c(1,2) #1 = Males, 2 = Femails
+mat_codes <- c(2:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes); mat_surv <- c(30,35); mat_sex <- c(1,2) #1 = Males, 2 = Femails
 # ------------------------------------------------------------------------------
 ###----VARIABLE SETTINGS FOR PRODUCING ALK----###
 #these are inputs to the function below used to create keys within each defined grouping
@@ -62,7 +62,7 @@ if(Species==9){
 
   comm_synaflokkur_group <- list('s1')
 
-  mat_codes <- c(3:100) 
+  mat_codes <- c(3:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes)
   
   mat_surv <- c(35) 
   
@@ -624,14 +624,24 @@ catch_by_age <-
 mat <-
   lesa_kvarnir(mar) %>% 
   filter(tegund == Species, !is.na(kynthroski), !is.na(aldur)) %>% 
+#  full_join(lesa_lengdir(mar) %>% 
+#              filter(tegund == Species, !is.na(kynthroski), !is.na(lengd))) %>% 
   semi_join(lesa_stodvar(mar) %>% 
             filter(ar == tyr)  %>%
             filter(synaflokkur %in% mat_surv)) %>% 
-  mutate(Mature = ifelse(kynthroski %in% mat_codes, 'Mat', 'Imm')) %>% 
+#  mutate(Mature = ifelse(kynthroski %in% mat_codes, 'Mat','Imm')) %>% 
+  mutate(Mature = ifelse(kynthroski %in% mat_codes, 'Mat', 
+                         ifelse(kynthroski %in% imm_codes, 'Imm', NA))) %>% 
+  filter(!is.na(Mature)) %>% 
   group_by(aldur,Mature) %>% 
   summarise(m_n = n()) %>% 
-  left_join(kv %>% 
-              filter(!is.na(kynthroski), !is.na(aldur)) %>% 
+  left_join(lesa_kvarnir(mar) %>% 
+              filter(tegund == Species, !is.na(kynthroski), !is.na(aldur)) %>% 
+              #  full_join(lesa_lengdir(mar) %>% 
+              #              filter(tegund == Species, !is.na(kynthroski), !is.na(lengd))) %>% 
+              semi_join(lesa_stodvar(mar) %>% 
+                          filter(ar == tyr)  %>%
+                          filter(synaflokkur %in% mat_surv)) %>%  
               group_by(aldur) %>% 
               summarise(tot_n = n())) %>% 
   mutate(prop = m_n/tot_n) %>% 
