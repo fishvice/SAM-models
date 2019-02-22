@@ -619,8 +619,8 @@ catch_by_age <-
               as_data_frame() %>% 
               mutate(age = as.numeric(age)))
 
-#will be renamed after going through later code to make sure I can recognize it
-
+#right now maturity data only extracted with ages, but could be possible to extract maturity at
+#length, then convert to maturity at age using ALK
 mat <-
   lesa_kvarnir(mar) %>% 
   filter(tegund == Species, !is.na(kynthroski), !is.na(aldur)) %>% 
