@@ -130,7 +130,9 @@ smb.index <-
 smh.index <- 
   calc_index(mar,  
              total_biomass_length_ranges = cutoffs[[1]],
-             other_length_ranges = cutoffs[c(-1)]) %>% 
+             other_length_ranges = cutoffs[c(-1)],
+             species_strata_depth = c("shallow","deep"),
+             species_winsor = c("none")) %>% 
   filter(synaflokkur == 35) %>% 
   mutate(fj.minni = n,
          fj.minni.u = n*(1+n.cv),
@@ -143,7 +145,7 @@ smh.index <-
 ## total biomass plot
 
 total_bio_plot <- 
-  smb.index %>% 
+  smh.index %>% #CHANGE BACK TO smb.index
   filter(index == names(cutoffs)[1]) %>% 
   ggplot(aes(ar,bio.staerri)) + 
   geom_ribbon(aes(ymin=bio.l,ymax=bio.u),fill='grey') + 

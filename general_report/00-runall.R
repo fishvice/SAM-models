@@ -1,6 +1,6 @@
 
 tyr <- 2018                     # set last year of data input
-Species <- 2                    # Select a species
+Species <- 19                    # Select a species
 load_tyr_data <- TRUE         # needs to be run each year to load this year's index and catch data to local tables 
 create_tyr_data <- TRUE        # needs to be run each year to create this year's CSV files
 create_previous_years<-TRUE    # needs to be run the first time a model is created to form earlier years

@@ -16,7 +16,7 @@ if(create_previous_years){
   catch_by_age_all <- catch_by_age
   
   #This will take a while
-  for(i in (tyr_current-2):1982){
+  for(i in past_years_series){
     tyr <- i
     print(paste0('beginning ', tyr))
     source('../general_report/05-catch_at_age.R')
@@ -86,6 +86,22 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     rename(Year = year)
   write.csv(smh_sw, paste0((as.numeric(yr_dir)-1),'/','smh_stock_weights.csv'), row.names = F)
+  
+  #length from spring survey
+  len2 <-
+    catch_by_age_all %>% 
+    select(age, year, s2_len) %>% 
+    spread(key = age, value = s2_len) %>% 
+    rename(Year = year)
+  write.csv(len2, paste0((as.numeric(yr_dir)-1),'/','len2.csv'), row.names = F)
+
+  #length from autumn survey
+  len3 <-
+    catch_by_age_all %>% 
+    select(age, year, s3_len) %>% 
+    spread(key = age, value = s3_len) %>% 
+    rename(Year = year)
+  write.csv(len3, paste0((as.numeric(yr_dir)-1),'/','len3.csv'), row.names = F)
   
   #mat created from all data sources
   mat <-
@@ -194,6 +210,22 @@ smh_sw <-
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
 write.csv(smh_sw, paste0(yr_dir,'/','smh_stock_weights.csv'), row.names = F)
+
+#length from spring survey
+len2 <-
+  read_csv(paste0((as.numeric(yr_dir)-1),'/','len2.csv')) %>% 
+  select(age, year, s2_len) %>% 
+  spread(key = age, value = s2_len) %>% 
+  rename(Year = year)
+write.csv(len2, paste0(yr_dir,'/','len2.csv'), row.names = F)
+
+#length from autumn survey
+len3 <-
+  read_csv(paste0((as.numeric(yr_dir)-1),'/','len3.csv')) %>% 
+  select(age, year, s3_len) %>% 
+  spread(key = age, value = s3_len) %>% 
+  rename(Year = year)
+write.csv(len3, paste0(yr_dir,'/','len3.csv'), row.names = F)
 
 ## Maturity at age
 mat <- 

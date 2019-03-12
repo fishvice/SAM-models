@@ -77,7 +77,7 @@ left_join(lesa_lengdir(mar) %>%
 #     TODO: Find a more permanent solution so scripts works for more than
 #           one species (via group_by( ..., tegund))
 mutate(tegund = if_else(is.na(tegund), Species, tegund),
-       lengd  = if_else(is.na(lengd), Length.min[[Species]], lengd), 
+       lengd  = if_else(is.na(lengd), 0, lengd),  # 0 lengths are 0 counts at stations
        fjoldi = if_else(is.na(fjoldi), 0, fjoldi)) %>%
   
   # 3. get count data ----------------------------------------------------------
@@ -97,9 +97,11 @@ mar:::skala_med_toglengd(., min_towlength = min.towlength, max_towlength = max.t
   
   # 6.b standardize to area swept
   #     this does not make much sense here because we already have this above
-  #     need to pass this function further down in the code path
+  #     need to pass this function further down in the code path - should be ok now
   #     
-  mutate(N = fjoldi / if_else(veidarfaeri == 78 , 1.25 * std.width, std.width)) %>%
+  #     
+  mutate(N = fjoldi / if_else(veidarfaeri == 78 & tegund != 19, 1.25 * std.width, std.width) / std.towlength) %>% #corrected by tow width and length at this point
+  #temporary fix above (excluding tegund 19) due to incompatibilities of past indices
   
   # 7. calculate_biomass from numbers, length and a and b ----------------------
 # 7.a get the length weight coefficients

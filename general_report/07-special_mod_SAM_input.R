@@ -9,6 +9,8 @@ smh_n  <- read_csv(paste0(yr_dir,'/','smh_n.csv'))
 smh_b  <- read_csv(paste0(yr_dir,'/','smh_b.csv'))
 smb_sw <- read_csv(paste0(yr_dir,'/','smb_stock_weights.csv'))
 smh_sw <- read_csv(paste0(yr_dir,'/','smh_stock_weights.csv'))
+len2    <- read_csv(paste0(yr_dir,'/','len2.csv'))
+len3    <- read_csv(paste0(yr_dir,'/','len3.csv'))
 mat    <- read_csv(paste0(yr_dir,'/','maturity.csv'))
 
 #cn, cw, mat, sw need to start from the beginning of the model (I think - based on haddock ex.)
@@ -214,6 +216,18 @@ if(Species==9){
     mat[mat$Year==1992,2:24] <- mat[mat$Year==1993,2:24] <- mat[mat$Year==1994,2:24] <- mat[mat$Year==1995,2:24] <- mat[mat$Year==1996,2:24] <-
     mat[mat$Year==1997,2:24] <- mat[mat$Year==1998,2:24] <- mat[mat$Year==1999,2:24] <- mat[mat$Year==2000,2:24] <- mat[mat$Year==2001,2:24] <-
     mat[mat$Year==2002,2:24]
+  
+  #Maturity data is squirrely in general. Perhaps better to fix maturity ogive and base maturity on length distribution
+  mat2 <- mat
+  len <- ifelse(is.na(len3[,2:24]), cbind(len2[,3:24], rep(NA, dim(len2)[1])), len3[,2:24]) %>% 
+    purrr::map(function(x) clean_weights(x)) %>% 
+    bind_cols(.) 
+  
+  mat2 <- 
+    len %>% 
+    purrr::map(function(x) (1-1/(1 + exp(0.44*(x - 63))))) %>%
+    bind_cols(x)
+  
   cn_s <- format_SAM(cn, first_year = 1988) #format_SAM(., add_ages = list(`1`=0.001,`2`=0.001)) # could do this here or above
   cw_s <- format_SAM(cw, first_year = 1988) #format_SAM(., add_ages = list(`1`=0,`2`=0)) #could do this here or above
   smb_n_s <- format_SAM(smb_n, first_year = 1988, smb = TRUE)
@@ -223,6 +237,42 @@ if(Species==9){
   smb_sw_s <- format_SAM(smb_sw, first_year = 1988) #these do not need timing changes right?
   smh_sw_s <- format_SAM(smh_sw, first_year = 1988)
   mat_s <- format_SAM(mat, first_year = 1988)
+  
+  
+  ## weight length relationship
+  lw.constants <- 
+    mfdb_dplyr_sample(mdb) %>% 
+    filter(species == defaults$species,
+           sampling_type == 'IGFS',
+           !is.na(weight),
+           length > 0) %>% 
+    select(length,weight) %>% 
+    collect(n=Inf) %>% 
+    lm(log(weight/1e3)~log(length),.) %>% 
+    broom::tidy() %>% 
+    select(estimate)
+  ## transport back to right dimension
+  lw.constants$estimate[1] <- exp(lw.constants$estimate[1])
+  
+  
+  
+  ## initial guess for the maturity ogive:
+  mat.l50 <- 
+    mfdb_dplyr_sample(mdb) %>% 
+    filter(species == defaults$species,
+           sampling_type == 'AUT',
+           sex == 'F',
+           !is.na(maturity_stage)) %>% 
+    select(length,maturity_stage) %>% 
+    group_by(length,maturity_stage) %>% 
+    dplyr::summarise(n=n()) %>% 
+    group_by(length) %>% 
+    dplyr::mutate(p=n/sum(n, na.rm = T)) %>% 
+    ungroup() %>% 
+    filter(maturity_stage=='2',p>0.50,length>25) %>% 
+    dplyr::summarise(l50=min(length)) %>% 
+    collect(n=Inf)
+  
   
 }
 

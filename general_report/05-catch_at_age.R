@@ -13,6 +13,7 @@ mat_codes <- c(2:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes); mat_su
 
 if(Species==2){
   #parameterized for haddock
+  past_years_series <- (tyr-2):1982 # series of data to use from previous years in 06-create_SAM_input
   
 comm_synaflokkur_group <- list('s1')
 mat_surv <- 30
@@ -60,6 +61,8 @@ ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
 
 if(Species==9){
 
+  past_years_series <- (tyr-2):1982 # series of data to use from previous years in 06-create_SAM_input
+  
   comm_synaflokkur_group <- list('s1')
 
   mat_codes <- c(3:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes)
@@ -69,7 +72,7 @@ if(Species==9){
   mat_sex <- c(2)
   
   if(tyr < 1988) {ALKyr_catch <- 1988; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
-  if(tyr %in% c(2015:2017)) {ALKyr_catch <- 2018; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
+  if(tyr %in% c(2016:2017)) {ALKyr_catch <- 2018; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
   
   surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 
@@ -102,6 +105,47 @@ if(Species==9){
                     areas = global_areas,
                     vf_group = unique(vf_group$vf_group))
 }
+
+if(Species==19){
+  
+  past_years_series <- c((tyr-2):1990, 1988:1982) # series of data to use from previous years in 06-create_SAM_input
+  
+  comm_synaflokkur_group <- list('s1')
+  
+  mat_codes <- c(2:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes)
+  
+  surv_ind <- c('t1s3r1g1vsurv') #corresponds with spring and autumn surveys,
+  
+  global_areas <- 101:108
+  
+  month_group <-data.frame(month = 1:12, month_group = c(rep('t1',12)))
+  
+  GRIDCELL_group <-data.frame(GRIDCELL = tbl(mar, 'reitmapping_original') %>% select(GRIDCELL) %>% distinct %>% collect(n=Inf) %>% unlist, GRIDCELL_group = 'g1')
+  
+  area_group <- data.frame(area = all_areas) %>% mutate(area_group =  'r1')
+  
+  vf_group <- data.frame(vf = c('vsurv',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist), 
+                         vf_group = c('vsurv',tbl(mar, 'husky_gearlist') %>% select(geartext) %>% distinct %>% collect(n=Inf) %>% unlist))
+  
+  synaflokkur_group <- data.frame(synaflokkur = lesa_stodvar(mar) %>% filter(ar == tyr) %>% select(synaflokkur) %>% distinct %>% collect(n=Inf)) %>% 
+    mutate(synaflokkur_group = ifelse(synaflokkur == 30, 's2',
+                                      ifelse(synaflokkur == 35, 's3', 's1')))
+  
+  cond_group<-expand.grid(condition = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filter(tegund==Species) %>% select(a) %>% collect %>%  unlist, 
+                          power = tbl_mar(mar, "ops$einarhj.lwcoeff") %>% filter(tegund==Species) %>% select(b) %>% collect %>%  unlist, 
+                          month_group = c('t1'), 
+                          GRIDCELL_group = 'g1', 
+                          area_group = c('r1'), 
+                          vf_group = unique(vf_group$vf_group),
+                          synaflokkur_group = unique(synaflokkur_group$synaflokkur_group)) %>% 
+    filter((!(synaflokkur_group %in% unlist(comm_synaflokkur_group)) & vf_group == 'vsurv') | (synaflokkur_group %in% unlist(comm_synaflokkur_group) & vf_group != 'vsurv') )
+  
+  ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
+                    area_group = 'r1',
+                    areas = global_areas,
+                    vf_group = unique(vf_group$vf_group))
+}
+
 
 # ------------------------------------------------------------------------------
 ###----Gather catch, age, length data----###
@@ -138,7 +182,7 @@ kv <-
   left_join( tbl(mar,'age_minlength') %>%
                filter(species==Species) %>% 
                mutate(aldur = age)) %>% 
-  filter(lengd>minlength) %>% 
+  filter(lengd>minlength, lengd < maxlength) %>% 
   mutate(fjoldi = 0.001) #initial weighted contribution to forming the ALK - 
                         #using all age measurements have a really small weight as a baseline
 
@@ -606,14 +650,17 @@ catch_by_age <-
               keep(!grepl(comm_synaflokkur_group[[1]], names(.))) %>% 
               purrr::map(function(x) {
                 as.list(x) %>% 
-                  keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur','WtPerAldur')) %>% 
+                  #add mean length
+                  keep(names(x) %in% c('FjPerAldur', 'BiomassPerAldur','WtPerAldur','MeanlePerAldur')) %>% 
                   bind_rows()
                 }) %>% 
               purrr::map(~mutate(.,age = rownames(.))) %>% 
               bind_rows(.id = 'part') %>%
               mutate(part = str_sub(part, 3,4)) %>% 
               gather(key = 'type', value = 'amount', -c(age, part)) %>%
-              mutate(type = ifelse(grepl('Fj', type), 'sno', ifelse(grepl('Wt', type), 'swt', 'sbio'))) %>% 
+              mutate(type = ifelse(grepl('Fj', type), 'sno', 
+                                   ifelse(grepl('Wt', type), 'swt', 
+                                          ifelse(grepl('le', type), 'len', 'sbio')))) %>%
               unite(index, part,type, sep = '_') %>% 
               spread(key = 'index', value = 'amount') %>% 
               as_data_frame() %>% 
