@@ -68,7 +68,7 @@ species_strata_depth_list[[19]] <- c('deep')
 species_winsor_list[[19]] <- c('q95') #this will replace only the upper 5% with the 95% quantile value
 species_strata_depth_list[[1]] <- species_strata_depth_list[[2]] <- species_strata_depth_list[[9]] <- 'all'
 species_strata_region_list[[1]] <- species_strata_region_list[[2]] <- species_strata_region_list[[9]] <- 'all'
-species_winsor_list[[1]] <- species_winsor_list[[2]] <- species_winsor_list[[9]] <- ''
+species_winsor_list[[1]] <- species_winsor_list[[2]] <- species_winsor_list[[9]] <- 'none'
 
 Index_Synaflokkur[[19]] <- c(35,35)
 Index_Tognumer[[19]] <- list(1:72, 1:72)#It was 72 in Muggur's code
@@ -221,11 +221,35 @@ smh.st.init <-
   lesa_stodvar(mar) %>% 
   filter(synaflokkur==35, tognumer <= 72, ar >=2000, !is.na(synis_id)) %>% 
   select(synis_id, leidangur, ar, man, dags, kastad_n_breidd, kastad_v_lengd, hift_n_breidd, hift_v_lengd, toglengd, reitur, tognumer, veidarfaeri) %>% 
-  dplyr::rename(synis.id = synis_id) %>% 
   collect(n=Inf) %>% 
   mutate(lat = (kastad_n_breidd + hift_n_breidd)/2, lon = (kastad_v_lengd + hift_v_lengd)/2) %>% 
   select(-c(kastad_n_breidd, hift_n_breidd, kastad_v_lengd, hift_v_lengd)) %>% 
-  unite('station', reitur, tognumer) 
+  husky::inside.strata(., mugg.ralllist) %>%
+  filter(newstrata>0) %>% 
+  unite('station', reitur, tognumer) %>% 
+  right_join(lesa_numer(mar) %>%
+              filter(tegund %in% 19) %>%
+              group_by(synis_id, tegund) %>%
+              summarise(fjoldi = sum(fj_talid, na.rm = TRUE)) %>% 
+              collect(n=Inf),
+            by = "synis_id") %>%
+  mutate(fjoldi = ifelse(is.na(fjoldi),0, fjoldi)) %>% 
+  dplyr::rename(synis.id = synis_id)
+
+smh.st.init2 <-  
+  smh.st.init  %>% 
+  left_join(smh.st.init  %>%
+              group_by(ar) %>% 
+              summarise(q95 = quantile(fjoldi, 0.95, na.rm = TRUE),
+                        q05 = quantile(fjoldi, 0.05, na.rm =TRUE)
+              )) %>% 
+  group_by(ar) %>% 
+  mutate(winsor = ifelse(fjoldi >= q95, 'q95',
+                         ifelse(fjoldi <= q05, 'q05','mid')),
+         winsor_val = ifelse(winsor=='q95', q95/fjoldi,
+                             ifelse(winsor=='q05'& fjoldi==0, 1, 
+                                    ifelse(winsor=='q05' & fjoldi > 1, q05/fjoldi, 
+                                           ifelse(winsor=='mid', 1, NA))))) 
 #stodvar[stodvar$synaflokkur==35 & stodvar$tognumer <=72 & stodvar$ar>=2000,]
 #smh.st<-smh.st[,c('synis.id','leidangur','ar','man',
 #                  'dags','lat','lon', 'toglengd')]
@@ -233,8 +257,7 @@ smh.st.init <-
 
 
 smh.st.pj<-
-  husky::inside.strata(smh.st.init, mugg.ralllist) %>%
-  filter(newstrata>0) %>% 
+  smh.st.init2 %>% 
   mutate(strata_depth = ifelse(newstrata %in% d400$nr, 'deep', 
                                ifelse(newstrata %in% shallow$nr, 'shallow', NA))) %>% 
   mutate(strata_region = ifelse(newstrata %in% c(SEs$nr, SEd$nr), 'SE', 
@@ -258,28 +281,13 @@ for(i in 1:length(strata.list)) {
     sfile$strata[j] <- strata.list[[i]][1]
 }
 
-smh.st.pj2<-
-  sfile %>% 
-  left_join(tibble(strata = attributes(STRATAS)$name, area = areas[1:64])) %>% 
-  left_join(lesa_numer(mar) %>% filter(tegund==19) %>%  select(synis.id = synis_id, fj_talid) %>% collect(n=Inf)) %>%
-  mutate(fjoldi = ifelse(is.na(fj_talid),0, fj_talid))
-  #filter(!is.na(fjoldi))
+
+   #filter(!is.na(fjoldi))
   
 
 d <-
-  smh.st.pj2 %>% 
-  left_join(smh.st.pj2 %>%
-              group_by(ar) %>% 
-              summarise(q95 = quantile(fjoldi, 0.95, na.rm = TRUE),
-                        q05 = quantile(fjoldi, 0.05, na.rm =TRUE)
-                        )) %>% 
-  group_by(ar) %>% 
-  mutate(winsor = ifelse(fjoldi >= q95, 'q95',
-                         ifelse(fjoldi <= q05, 'q05','mid')),
-         winsor_val = ifelse(winsor=='q95', q95/fjoldi,
-                             ifelse(winsor=='q05'& fjoldi==0, 1, 
-                                    ifelse(winsor=='q05' & fjoldi > 1, q05/fjoldi, 
-                                           ifelse(winsor=='mid', 1, NA))))) %>% 
+  sfile %>% 
+  left_join(tibble(strata = attributes(STRATAS)$name, area = areas[1:64])) %>% 
   select(synis_id = synis.id, station, strata, strata_depth, strata_region, area, winsor, winsor_val) %>% 
   mutate(newstrata = as.integer(strata))
 
