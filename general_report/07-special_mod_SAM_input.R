@@ -3,14 +3,18 @@
 
 cn     <- read_csv(paste0(yr_dir,'/','catage.csv'))
 cw     <- read_csv(paste0(yr_dir,'/','catch_weights.csv'))
-smb_n  <- read_csv(paste0(yr_dir,'/','smb_n.csv'))
-smb_b  <- read_csv(paste0(yr_dir,'/','smb_b.csv'))
-smh_n  <- read_csv(paste0(yr_dir,'/','smh_n.csv'))
-smh_b  <- read_csv(paste0(yr_dir,'/','smh_b.csv'))
-smb_sw <- read_csv(paste0(yr_dir,'/','smb_stock_weights.csv'))
-smh_sw <- read_csv(paste0(yr_dir,'/','smh_stock_weights.csv'))
-len2    <- read_csv(paste0(yr_dir,'/','len2.csv'))
-len3    <- read_csv(paste0(yr_dir,'/','len3.csv'))
+if(30 %in% Index_Synaflokkur[[Species]]){
+  smb_n  <- read_csv(paste0(yr_dir,'/','smb_n.csv'))
+  smb_b  <- read_csv(paste0(yr_dir,'/','smb_b.csv'))
+  smb_sw <- read_csv(paste0(yr_dir,'/','smb_stock_weights.csv'))
+  smb_len<- read_csv(paste0(yr_dir,'/','smb_len.csv'))
+}
+if(35 %in% Index_Synaflokkur[[Species]]){
+  smh_n  <- read_csv(paste0(yr_dir,'/','smh_n.csv'))
+  smh_b  <- read_csv(paste0(yr_dir,'/','smh_b.csv'))
+  smh_sw <- read_csv(paste0(yr_dir,'/','smh_stock_weights.csv'))
+  smh_len    <- read_csv(paste0(yr_dir,'/','smh_len.csv'))
+}
 mat    <- read_csv(paste0(yr_dir,'/','maturity.csv'))
 
 #cn, cw, mat, sw need to start from the beginning of the model (I think - based on haddock ex.)
@@ -219,7 +223,7 @@ if(Species==9){
   
   #Maturity data is squirrely in general. Perhaps better to fix maturity ogive and base maturity on length distribution
   mat2 <- mat
-  len <- ifelse(is.na(len3[,2:24]), cbind(len2[,3:24], rep(NA, dim(len2)[1])), len3[,2:24]) %>% 
+  len <- ifelse(is.na(smh_len[,2:24]), cbind(smb_len[,3:24], rep(NA, dim(smb_len)[1])), smh_len[,2:24]) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) 
   

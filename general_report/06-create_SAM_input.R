@@ -39,6 +39,7 @@ if(create_previous_years){
     rename(Year = year)
   write.csv(cw, paste0((as.numeric(yr_dir)-1),'/','catch_weights.csv'), row.names = F)
 
+  if(30 %in% Index_Synaflokkur[[Species]]){
   smb_n <-
     catch_by_age_all %>% 
     select(age, year, s2_sno) %>% #.[-c(1:13),] %>% 
@@ -54,7 +55,10 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     rename(Year = year)
   write.csv(smb_b, paste0((as.numeric(yr_dir)-1),'/','smb_b.csv'), row.names = F)
+  }
   
+  if(35 %in% Index_Synaflokkur[[Species]]){
+    
   smh_n <-
     catch_by_age_all %>% 
     select(age, year, s3_sno) %>% #.[-c(1:13),] %>% 
@@ -70,7 +74,9 @@ if(create_previous_years){
     mutate_all(~ifelse(is.na(.), -1, .)) %>% 
     rename(Year = year)
   write.csv(smh_b, paste0((as.numeric(yr_dir)-1),'/','smh_b.csv'), row.names = F)
+  }
   
+  if(30 %in% Index_Synaflokkur[[Species]]){
   smb_sw <-
     catch_by_age_all %>% 
     select(age, year, s2_swt) %>% #.[-c(1:13),] %>% 
@@ -79,6 +85,16 @@ if(create_previous_years){
     rename(Year = year)
   write.csv(smb_sw, paste0((as.numeric(yr_dir)-1),'/','smb_stock_weights.csv'), row.names = F)
 
+  #length from spring survey
+  smb_len <-
+    catch_by_age_all %>% 
+    select(age, year, s2_len) %>% 
+    spread(key = age, value = s2_len) %>% 
+    rename(Year = year)
+  write.csv(smb_len, paste0((as.numeric(yr_dir)-1),'/','smb_len.csv'), row.names = F)
+  }
+  
+  if(35 %in% Index_Synaflokkur[[Species]]){
   smh_sw <-
     catch_by_age_all %>% 
     select(age, year, s3_swt) %>% #.[-c(1:13),] %>% 
@@ -87,21 +103,15 @@ if(create_previous_years){
     rename(Year = year)
   write.csv(smh_sw, paste0((as.numeric(yr_dir)-1),'/','smh_stock_weights.csv'), row.names = F)
   
-  #length from spring survey
-  len2 <-
-    catch_by_age_all %>% 
-    select(age, year, s2_len) %>% 
-    spread(key = age, value = s2_len) %>% 
-    rename(Year = year)
-  write.csv(len2, paste0((as.numeric(yr_dir)-1),'/','len2.csv'), row.names = F)
-
-  #length from autumn survey
-  len3 <-
+  
+    #length from autumn survey
+  smh_len <-
     catch_by_age_all %>% 
     select(age, year, s3_len) %>% 
     spread(key = age, value = s3_len) %>% 
     rename(Year = year)
-  write.csv(len3, paste0((as.numeric(yr_dir)-1),'/','len3.csv'), row.names = F)
+  write.csv(smh_len, paste0((as.numeric(yr_dir)-1),'/','smh_len.csv'), row.names = F)
+  }
   
   #mat created from all data sources
   mat <-
@@ -144,6 +154,7 @@ cw <-
   ) 
 write.csv(cw, paste0(yr_dir,'/','catch_weights.csv'), row.names = F)
 
+if(30 %in% Index_Synaflokkur[[Species]]){
 ## Read the spring survey numbers
 smb_n <- 
   read_csv(paste0((as.numeric(yr_dir)-1),'/','smb_n.csv')) %>% 
@@ -155,8 +166,8 @@ smb_n <-
   ) 
 write.csv(smb_n, paste0(yr_dir,'/','smb_n.csv'), row.names = F)
 
-## Read the spring survey biomass
 
+## Read the spring survey biomass
 smb_b <- 
   read_csv(paste0((as.numeric(yr_dir)-1),'/','smb_b.csv')) %>% 
   #set_names(., c('year', as.character(catch_by_age$age %>% unique))) %>% 
@@ -166,7 +177,9 @@ smb_b <-
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
 write.csv(smb_b, paste0(yr_dir,'/','smb_b.csv'), row.names = F)
+}
 
+if(35 %in% Index_Synaflokkur[[Species]]){
 ## Autumn survey numbers
 smh_n <- 
   read_csv(paste0((as.numeric(yr_dir)-1),'/','smh_n.csv')) %>% 
@@ -188,7 +201,9 @@ smh_b <-
               mutate_all(~ifelse(is.na(.), -1, .))  
   ) 
 write.csv(smh_b, paste0(yr_dir,'/','smh_b.csv'), row.names = F)
+}
 
+if(30 %in% Index_Synaflokkur[[Species]]){
 ## Stock weights from spring survey
 smb_sw <- 
   read_csv(paste0((as.numeric(yr_dir)-1),'/','smb_stock_weights.csv')) %>% 
@@ -200,6 +215,17 @@ smb_sw <-
   )
 write.csv(smb_sw, paste0(yr_dir,'/','smb_stock_weights.csv'), row.names = F)
 
+#length from spring survey
+smb_len <-
+  read_csv(paste0((as.numeric(yr_dir)-1),'/','smb_len.csv')) %>% 
+  select(age, year, s2_len) %>% 
+  spread(key = age, value = s2_len) %>% 
+  rename(Year = year)
+write.csv(smb_len, paste0(yr_dir,'/','smb_len.csv'), row.names = F)
+
+}
+
+if(35 %in% Index_Synaflokkur[[Species]]){
   ## Stock weights from autumn survey
 smh_sw <- 
   read_csv(paste0((as.numeric(yr_dir)-1),'/','smh_stock_weights.csv')) %>% 
@@ -211,21 +237,16 @@ smh_sw <-
   ) 
 write.csv(smh_sw, paste0(yr_dir,'/','smh_stock_weights.csv'), row.names = F)
 
-#length from spring survey
-len2 <-
-  read_csv(paste0((as.numeric(yr_dir)-1),'/','len2.csv')) %>% 
-  select(age, year, s2_len) %>% 
-  spread(key = age, value = s2_len) %>% 
-  rename(Year = year)
-write.csv(len2, paste0(yr_dir,'/','len2.csv'), row.names = F)
-
 #length from autumn survey
-len3 <-
-  read_csv(paste0((as.numeric(yr_dir)-1),'/','len3.csv')) %>% 
+smh_len <-
+  read_csv(paste0((as.numeric(yr_dir)-1),'/','smh_len.csv')) %>% 
   select(age, year, s3_len) %>% 
   spread(key = age, value = s3_len) %>% 
   rename(Year = year)
-write.csv(len3, paste0(yr_dir,'/','len3.csv'), row.names = F)
+write.csv(smh_len, paste0(yr_dir,'/','smh_len.csv'), row.names = F)
+}
+
+
 
 ## Maturity at age
 mat <- 

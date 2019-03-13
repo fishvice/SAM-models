@@ -108,7 +108,7 @@ if(Species==9){
 
 if(Species==19){
   
-  past_years_series <- c((tyr-2):1990, 1988:1982) # series of data to use from previous years in 06-create_SAM_input
+  past_years_series <- c((tyr-2):1990, 1988:1987) # series of data to use from previous years in 06-create_SAM_input
   
   comm_synaflokkur_group <- list('s1')
   
@@ -231,6 +231,13 @@ catch <-
   rename(area = DIVISION) %>% 
   filter(area %in% global_areas) #%>% 
 
+if(dim(catch %>% collect(n=Inf))[1]==0){
+  print('WARNING: No catch data - using landings instead')
+  catch <- 
+    landings_caa %>% 
+    mutate(afli = landings_caa, man = 1, GRIDCELL = 1811, area = 101) #arbitrarily chosen so that the rest of the code works... 
+}
+
 #.... by gear and compared with landings_caa
 sc <- 
   catch %>% 
@@ -242,12 +249,13 @@ sc <-
 commcatch <- 
   catch %>% 
   left_join(sc) %>% 
-  mutate(afli = afli*landings_caa/catch) %>% #discrepancy correction
+  mutate(catch = afli*landings_caa/catch) %>% #discrepancy correction
   mutate(synaflokkur_group = 's1') %>% # 'commercial' synaflokkur - helps with later groupings - 
-  group_by(vf, man) %>% 
-  filter(!is.na(afli)) %>% 
-  mutate(catch = afli) %>% 
+  #group_by(vf, man) %>% 
+  filter(!is.na(catch)) %>% 
+  #mutate(catch = afli) %>% 
   collect(n=Inf) #%>% 
+
 
 #... and summarized by vf, time, reg, for viewing purposes
 commcatch_groupings<-
@@ -262,7 +270,7 @@ commcatch_groupings<-
   unite(index,c(month_group,synaflokkur_group,area_group,GRIDCELL_group, vf_group),sep = '',remove = FALSE) %>% 
   group_by(index) %>% 
   summarise(catch = sum(catch,na.rm=TRUE))
-  
+
 #total landings for that year
 totcatch <- 
   lods_oslaegt(mar) %>% 
