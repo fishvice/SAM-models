@@ -217,10 +217,10 @@ write.csv(smb_sw, paste0(yr_dir,'/','smb_stock_weights.csv'), row.names = F)
 
 #length from spring survey
 smb_len <-
-  read_csv(paste0((as.numeric(yr_dir)-1),'/','smb_len.csv')) %>% 
-  select(age, year, s2_len) %>% 
-  spread(key = age, value = s2_len) %>% 
-  rename(Year = year)
+  read_csv(paste0((as.numeric(yr_dir)-1),'/','smb_len.csv')) #%>% 
+#  select(age, year, s2_len) %>% 
+#  spread(key = age, value = s2_len) %>% 
+#  rename(Year = year)
 write.csv(smb_len, paste0(yr_dir,'/','smb_len.csv'), row.names = F)
 
 }
@@ -239,10 +239,10 @@ write.csv(smh_sw, paste0(yr_dir,'/','smh_stock_weights.csv'), row.names = F)
 
 #length from autumn survey
 smh_len <-
-  read_csv(paste0((as.numeric(yr_dir)-1),'/','smh_len.csv')) %>% 
-  select(age, year, s3_len) %>% 
-  spread(key = age, value = s3_len) %>% 
-  rename(Year = year)
+  read_csv(paste0((as.numeric(yr_dir)-1),'/','smh_len.csv')) #%>% 
+  #select(age, year, s3_len) %>% 
+  #spread(key = age, value = s3_len) %>% 
+  #rename(Year = year)
 write.csv(smh_len, paste0(yr_dir,'/','smh_len.csv'), row.names = F)
 }
 

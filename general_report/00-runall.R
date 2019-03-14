@@ -1,5 +1,5 @@
 
-for(Species in c(19,9,2)){     # Select a species:
+for(Species in c(9,2)){     # Select a species:
   
   tyr <- 2018                    # set last year of data input
 
