@@ -219,7 +219,7 @@ mugg.ralllist<-sort(mugg.smh$total$nr)
 
 smh.st.init <- 
   lesa_stodvar(mar) %>% 
-  filter(synaflokkur==35, tognumer <= 72, ar >=2000, !is.na(synis_id)) %>% 
+  filter(synaflokkur==35, tognumer <= 72, !is.na(synis_id)) %>% #removed ar >=2000 - not sure why
   select(synis_id, leidangur, ar, man, dags, kastad_n_breidd, kastad_v_lengd, hift_n_breidd, hift_v_lengd, toglengd, reitur, tognumer, veidarfaeri) %>% 
   collect(n=Inf) %>% 
   mutate(lat = (kastad_n_breidd + hift_n_breidd)/2, lon = (kastad_v_lengd + hift_v_lengd)/2) %>% 
@@ -320,7 +320,11 @@ try(reitmapping_original <- read.table(
 
 ###---- Gear definitions ----###
 
+print('WARNING: double check that gears for your species are included in the husky_gearlist')
+
 husky::gearlist %>% 
+  bind_rows(data.frame(gear = c(rep(7, 7), rep(6, 7)), veidarfaeri = c(c(7,13,19,21,23,24,34), c(22, 68,73,74,76,77,78))) %>% 
+              mutate(geartext = paste0('v',gear))) %>% 
   dbWriteTable(mar,'husky_gearlist',.,overwrite =TRUE)
 
 }

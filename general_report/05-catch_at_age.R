@@ -355,15 +355,6 @@ calc_all <- function(ind,
   }              
 
 
-  ###---- Begin with 'global' data defined external to function:
-  #apply ALK weight to the all-data scenario
-  kv_c<-
-    kv_c %>% 
-    mutate(fjoldi = ifelse(comm_synaflokkur_group %>% 
-                             purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any,
-                           ALK_wts[1],
-                           0)) #kv_c redefined as commercial data, gives a weight of 0 if computing for survey index
-  
 
   ###---- Create reference group that will fill in data when not available (has a low weight which becomes more important when fewer data are available for a group)---###
   #note this could be done outside the function, but may be handy inside for automation
@@ -394,7 +385,20 @@ calc_all <- function(ind,
        unlist %>% any) & use_le_surv){
     st_le <- st_c %>% filter(LEyr_surv==1)
     print(paste0('Using LE reference year ', LEyr_surv))
-    }
+  }
+  
+  ###---- Begin with 'global' data defined external to function:
+  #apply ALK weight to the all-data scenario
+  kv_c<-
+    kv_c %>% 
+    inner_join(st_alk %>% 
+                 left_join(synaflokkur_group)) %>% 
+    mutate(fjoldi = ifelse(comm_synaflokkur_group %>% 
+                             purrr::map(function(x) grepl(x,ind)) %>% unlist %>% any,
+                           ALK_wts[1],
+                           0)) #kv_c redefined as commercial data, gives a weight of 0 if computing for survey index
+  
+  
   
   st_ref <- 
       st_alk %>% 
