@@ -43,13 +43,19 @@ setwd(file.path(getwd(), sp_dir)) #should work for windows?
 yr_dir<-as.character(tyr)
 dir.create(file.path(getwd(), yr_dir))
 
+
 #Set species-specific parameters (done for haddock so far)
 
-#Basic dimensions for ALK 
+past_years_series <- c((tyr-2):1982) # series of data to use from previous years in 06-create_SAM_input
+if(Species==19){
+  past_years_series <- c((tyr-2):1985) # series of data to use from previous years in 06-create_SAM_input
+}
+
+#Basic dimensions for ALK and SAM model
 #age and min length possible for that age
 data.frame(age=1:14,minlength=15+2.5*(1:14), maxlength = 200, species=2) %>%
   bind_rows(data.frame(age = 1:23, minlength = 5+2*(1:23), maxlength = c(20, 35, rep(200, 23-2)),species=9)) %>% 
-  bind_rows(data.frame(age = 1:30, minlength = c(5+1.5*(1:20), rep(35, 10)), maxlength = c(25, 30, 35, 40, 45, rep(60, 30-5)),species=19)) %>% 
+  bind_rows(data.frame(age = 1:25, minlength = c(5+1.5*(1:20), rep(35, 5)), maxlength = c(25, 30, 35, 40, 45, rep(60, 25-5)),species=19)) %>% 
   dbWriteTable(mar,'age_minlength',.,overwrite=TRUE)
 
 ldist_bins <- NULL

@@ -27,10 +27,10 @@ dimnames(nm) <- dimnames(cn_s)
 
 ## Prepare input to the SAM call
 
-dat <- setup.sam.data(surveys=list(smb=smb_b_s,smh=smh_b_s), #should this be biomass or numbers?
+dat <- setup.sam.data(surveys=list(smh=smh_b_s),#list(smb=smb_b_s,smh=smh_b_s), #should this be biomass or numbers?
                       residual.fleet=cn_s*1000, 
                       prop.mature=mat_s, 
-                      stock.mean.weight=smb_sw_s, 
+                      stock.mean.weight=smh_sw_s, 
                       catch.mean.weight=cw_s, 
                       dis.mean.weight=cw_s, 
                       land.mean.weight=cw_s,

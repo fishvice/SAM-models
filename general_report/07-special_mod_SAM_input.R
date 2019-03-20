@@ -26,13 +26,18 @@ clean_weights <- function(x){
   #OR it's a missing value (== -1),
   #then replace with the mean, after min and max have been removed
   #NOTE that when there are multiple min/max matches, only the first is removed
-  min_ind <- which.min(x[x!=-1])
-  max_ind <- which.max(x[x!=-1])
-  x <- ifelse((x > mean(x[x!=-1][-c(min_ind, max_ind)]) + 1.96*sd(x[x!=-1][-c(min_ind, max_ind)])) |
-              (x < mean(x[x!=-1][-c(min_ind, max_ind)]) - 1.96*sd(x[x!=-1][-c(min_ind, max_ind)])) |
+  neg1s <- x!= -1
+    
+  min_ind <- which.min(x[neg1s])
+  max_ind <- which.max(x[neg1s])
+  if(max(x) != tyr){x[neg1s][c(min_ind,max_ind)] <- -1}
+    
+  x <- ifelse((x > mean(x[neg1s][-c(min_ind, max_ind)]) + 1.96*sd(x[neg1s][-c(min_ind, max_ind)])) |
+              (x < mean(x[neg1s][-c(min_ind, max_ind)]) - 1.96*sd(x[neg1s][-c(min_ind, max_ind)])) |
               (x == -1),
-         mean(x[x!=-1][-c(min_ind, max_ind)]),
+         mean(x[neg1s][-c(min_ind, max_ind)]),
          x)
+  
   
 }
 
@@ -73,26 +78,29 @@ if(Species==2){ #needs work to be like wolffish
   # cw <-
   #   cw %>% 
   #   (function(x) x/1000)
+
   cw <-
     cw %>% 
     mutate(`1` = ifelse(`1` > `2`, -1, `1`),
            `2` = ifelse(`2` > `3`, -1, `2`)) %>% #converting obviously wrong weights to NAs
     purrr::map(function(x) clean_weights(x)) %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
+    mutate(Year = Year*1000) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) 
+    mutate(Year = round(Year)) 
   
-  
+
   smb_sw <-
     smb_sw %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
     bind_cols(.) %>% 
+    mutate(Year = Year*1000) %>% 
     ## add missing ages and years using catch weights
     (function(x){bind_rows(cw[cw$Year %in% c(1982:1984),],
                            x[!(cw$Year %in% c(1982:1984)),])}) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) %>% 
+    mutate(Year = round(Year)) %>% 
     arrange(Year)
   
   
@@ -100,11 +108,12 @@ if(Species==2){ #needs work to be like wolffish
     smh_sw %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
     bind_cols(.) %>% 
+    mutate(Year=Year*1000) %>% 
     (function(x){bind_rows(smb_sw[smb_sw$Year %in% c(1982:1995,2011),],
                            x[!(smb_sw$Year %in% c(1982:1995,2011)),])}) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) %>% 
+    mutate(Year = round(Year)) %>% 
     arrange(Year)
   
   
@@ -184,12 +193,13 @@ if(Species==9){
     smb_sw %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
     bind_cols(.) %>% 
+    mutate(Year = Year*1000) %>% 
     ## add missing ages and years using catch weights
     (function(x){bind_rows(cw[cw$Year %in% c(1982:1984),],
                            x[!(cw$Year %in% c(1982:1984)),])}) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) %>% 
+    mutate(Year = round(Year)) %>% 
     arrange(Year)
     
 
@@ -197,11 +207,12 @@ if(Species==9){
     smh_sw %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
     bind_cols(.) %>% 
+    mutate(Year = Year*1000) %>% 
     (function(x){bind_rows(smb_sw[smb_sw$Year %in% c(1982:1995,2011),],
                            x[!(smb_sw$Year %in% c(1982:1995,2011)),])}) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) %>% 
+    mutate(Year = round(Year)) %>% 
     arrange(Year)
     
   mat <- 
@@ -266,6 +277,7 @@ if(Species==9){
   
   
   
+  
   ## initial guess for the maturity ogive:
   mat.l50 <- 
     mfdb_dplyr_sample(mdb) %>% 
@@ -291,34 +303,37 @@ if(Species==19){
   
   smh_n <-
     smh_n %>% 
-    filter(Year > 1995) #%>% 
+    filter(Year > 2003) #%>% #not sure why earlier data not working right now...
   #select(-c(`1`)) #should age 1 be excluded? Does it matter?
   
   smh_b <-
     smh_b %>% 
-    filter(Year > 1995) #%>% 
+    filter(Year > 2003) #%>% 
   #select(-c(`1`)) #should age 1 be excluded? Does it matter?
+  nages <- tbl(mar,'age_minlength') %>% filter(species==19) %>% collect(n=Inf) %>% dim(.) %>% unlist %>% .[1]
+  smh_n[smh_n$Year==2011,2:(nages+1)] <- smh_b[smh_b$Year==2011,2:(nages+1)] <- rep(-1,nages) #only partial data from cancelled survey
   
-  smh_n[smh_n$Year==2011,2:26] <- smh_b[smh_b$Year==2011,2:26] <- rep(-1,25) #only partial data from cancelled survey
-  
+
   cw <-
     cw %>% 
     mutate(`1` = ifelse(`1` > `2`, -1, `1`),
-           `2` = ifelse(`2` > `3`, -1, `2`)) %>% #converting obviously wrong weights to NAs
+           `2` = ifelse(`2` > `3`, -1, `2`)) %>% #converting obviously wrong weights to NAs. But makes judgment that smaller is the wrong one.
     purrr::map(function(x) clean_weights(x)) %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) 
+    mutate(Year = round(Year*1000)) #careful that years are not changed at this step
   
+
   smh_sw <-
     smh_sw %>% 
     purrr::map(function(x) ifelse(x == -1, x, x/1000)) %>% 
     bind_cols(.) %>% 
-    mutate(Year = round(Year*1000)) %>% 
+    mutate(Year = Year*1000) %>% 
     (function(x){bind_rows(cw[cw$Year %in% c(1982:1999,2011),],
                            x[!(cw$Year %in% c(1982:1999,2011)),])}) %>% 
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) %>%
+    mutate(Year = round(Year)) %>% #careful years don't change here
     arrange(Year)
   
   mat <- 
@@ -335,16 +350,21 @@ if(Species==19){
     purrr::map(function(x) clean_weights(x)) %>% 
     bind_cols(.) 
   
+    
+    mat[1:34,-1]<- mat[mat$Year==2009,-1]
 
-  cn_s <- format_SAM(cn, first_year = 1988) #format_SAM(., add_ages = list(`1`=0.001,`2`=0.001)) # could do this here or above
-  cw_s <- format_SAM(cw, first_year = 1988) #format_SAM(., add_ages = list(`1`=0,`2`=0)) #could do this here or above
-  smb_n_s <- format_SAM(smb_n, first_year = 1988, smb = TRUE)
-  smb_b_s <- format_SAM(smb_b, first_year = 1988, smb = TRUE)
-  smh_n_s <- format_SAM(smh_n, first_year = 1988, smh = TRUE)
-  smh_b_s <- format_SAM(smh_b, first_year = 1988, smh = TRUE)
-  smb_sw_s <- format_SAM(smb_sw, first_year = 1988) #these do not need timing changes right?
-  smh_sw_s <- format_SAM(smh_sw, first_year = 1988)
-  mat_s <- format_SAM(mat, first_year = 1988)
+
+
+
+  cn_s <- format_SAM(cn, first_year = 1985) #format_SAM(., add_ages = list(`1`=0.001,`2`=0.001)) # could do this here or above
+  cw_s <- format_SAM(cw, first_year = 1985) #format_SAM(., add_ages = list(`1`=0,`2`=0)) #could do this here or above
+#  smb_n_s <- format_SAM(smb_n, first_year = 1985, smb = TRUE)
+#  smb_b_s <- format_SAM(smb_b, first_year = 1985, smb = TRUE)
+  smh_n_s <- format_SAM(smh_n, first_year = 1985, smh = TRUE)
+  smh_b_s <- format_SAM(smh_b, first_year = 1985, smh = TRUE)
+#  smb_sw_s <- format_SAM(smb_sw, first_year = 1985) #these do not need timing changes right?
+  smh_sw_s <- format_SAM(smh_sw, first_year = 1985)
+  mat_s <- format_SAM(mat, first_year = 1985)
   
   
 }

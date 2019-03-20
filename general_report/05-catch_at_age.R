@@ -6,15 +6,16 @@
 #--- DEFAULT SETTINGS
 # all_areas is all possible areas, should be replaced within species section if necessary
 all_areas <- tbl(mar, 'reitmapping_original') %>% select(DIVISION) %>% distinct %>% collect(n=Inf) %>% unlist
-mat_codes <- c(2:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes); mat_surv <- c(30,35); mat_sex <- c(1,2) #1 = Males, 2 = Femails
+print('WARNING: #may need to add more survey synaflokkur to this list')
+all_surveys <- c(30,35)
+mat_codes <- c(2:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes); mat_surv <- all_surveys; mat_sex <- c(1,2) #1 = Males, 2 = Femails
 # ------------------------------------------------------------------------------
 ###----VARIABLE SETTINGS FOR PRODUCING ALK----###
 #these are inputs to the function below used to create keys within each defined grouping
 
 if(Species==2){
   #parameterized for haddock
-  past_years_series <- (tyr-2):1982 # series of data to use from previous years in 06-create_SAM_input
-  
+
 comm_synaflokkur_group <- list('s1')
 mat_surv <- 30
 surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
@@ -61,8 +62,7 @@ ref_group <- list(GRIDCELL_group = unique(GRIDCELL_group$GRIDCELL_group),
 
 if(Species==9){
 
-  past_years_series <- (tyr-2):1982 # series of data to use from previous years in 06-create_SAM_input
-  
+
   comm_synaflokkur_group <- list('s1')
 
   mat_codes <- c(3:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes)
@@ -71,9 +71,11 @@ if(Species==9){
   
   mat_sex <- c(2)
   
-  if(tyr < 1988) {ALKyr_catch <- 1988; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
-  if(tyr %in% c(2016:2017)) {ALKyr_catch <- 2018; use_alk_catch <- TRUE} else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
-  
+  if(tyr < 1988) {ALKyr_catch <- 1988; use_alk_catch <- TRUE} 
+    else {ALKyr_catch <- 1900; use_alk_catch <- FALSE
+        if(tyr %in% c(2016:2017)) {ALKyr_catch <- 2018; use_alk_catch <- TRUE} 
+        else {ALKyr_catch <- 1900; use_alk_catch <- FALSE}
+    }
   surv_ind <- c('t1s2r1g1vsurv', 't2s3r1g1vsurv') #corresponds with spring and autumn surveys,
 
   global_areas <- 101:108
@@ -108,14 +110,19 @@ if(Species==9){
 
 if(Species==19){
   
-  past_years_series <- c((tyr-2):1990, 1988:1987) # series of data to use from previous years in 06-create_SAM_input
-  
   comm_synaflokkur_group <- list('s1')
   
   mat_codes <- c(2:100); imm_codes <- setdiff(1:max(mat_codes), mat_codes)
   
-  surv_ind <- c('t1s3r1g1vsurv') #corresponds with spring and autumn surveys,
+  surv_ind <- c('t1s3r1g1vsurv') #corresponds with autumn surveys,
   
+  #if(tyr == 1996) {ALKyr_surv <- 1998; use_alk_surv <- TRUE} else {ALKyr_surv <- 1900; use_alk_surv <- FALSE}
+  if(tyr %in% 1995:1997) {ALKyr_surv <- 2000; use_alk_surv <- TRUE; ALKyr_catch <- 1998; use_alk_catch <- TRUE} 
+  else {ALKyr_surv <- 1900; use_alk_surv <- FALSE; ALKyr_catch <- 1900; use_alk_catch <- FALSE
+      if(tyr %in% c(1999)) {ALKyr_surv <- 2000; use_alk_surv <- TRUE; ALKyr_catch <- 2000; use_alk_catch <- TRUE}
+      else {ALKyr_surv <- 1900; use_alk_surv <- FALSE; ALKyr_catch <- 1900; use_alk_catch <- FALSE
+          if(tyr %in% c(2001:2003)) {ALKyr_surv <- 2004; use_alk_surv <- TRUE} else {ALKyr_surv <- 1900; use_alk_surv <- FALSE}
+              }}
   global_areas <- 101:108
   
   month_group <-data.frame(month = 1:12, month_group = c(rep('t1',12)))
@@ -163,7 +170,7 @@ st <-
   #inner_join(tbl(mar,'husky_gearlist')) %>% #AT THIS STEP SURVEY DATA ARE REMOVED???
   left_join(tbl(mar,'husky_gearlist')) %>%  
   rename(vf = geartext) %>% 
-  mutate(vf = ifelse(synaflokkur %in% Index_Synaflokkur[[Species]], 'vsurv', vf)) %>%
+  mutate(vf = ifelse(synaflokkur %in% all_surveys, 'vsurv', vf)) %>%
   #filter(vf != 'vsurv') %>% #this will make it closer to Höski's code but at the expense of the following being generalized to both commercial and survey
   inner_join(tbl(mar,'reitmapping_original')) %>% 
   rename(area = DIVISION) %>% 
@@ -185,6 +192,8 @@ kv <-
   filter(lengd>minlength, lengd < maxlength) %>% 
   mutate(fjoldi = 0.001) #initial weighted contribution to forming the ALK - 
                         #using all age measurements have a really small weight as a baseline
+
+
 
 #all length info that can be matched with st
 le <- 
@@ -450,7 +459,7 @@ calc_all <- function(ind,
      left_join(GRIDCELL_group) %>% 
      left_join(area_group) %>% 
      left_join(vf_group) %>% 
-     mutate(vf = ifelse(synaflokkur %in% surv_synaflokkur, 'vsurv', vf)) %>% #
+     mutate(vf = ifelse(synaflokkur %in% all_surveys, 'vsurv', vf)) %>% #may need to add more survey synaflokkur to this list
      left_join(synaflokkur_group) %>%
      filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group)) %>%       
      ungroup() %>% 
@@ -464,7 +473,7 @@ calc_all <- function(ind,
      left_join(GRIDCELL_group) %>% 
      left_join(area_group) %>% 
      left_join(vf_group) %>% 
-     mutate(vf = ifelse(synaflokkur %in% surv_synaflokkur, 'vsurv', vf)) %>% #
+     mutate(vf = ifelse(synaflokkur %in% all_surveys, 'vsurv', vf)) %>% #
      left_join(synaflokkur_group) %>%
      filter(!is.na(month_group), !is.na(GRIDCELL_group), !is.na(area_group), vf_group != 'NA' | !is.na(vf_group), !is.na(synaflokkur_group)) %>%       
      ungroup() %>% 

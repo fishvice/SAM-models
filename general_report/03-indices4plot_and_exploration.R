@@ -9,6 +9,7 @@ library(viridis)
 #devtools::install_github('einarhjorleifsson/gisland')
 library(gisland)
 
+
 ####-------Comparison of indices in 4plot-------#####
 
 #####-------Traditional indices-------#####
@@ -235,6 +236,20 @@ smh.index.tr %>%
   ggplot(aes(ar, bio.staerri)) + geom_line() + geom_line(aes(ar, b), col = 2)
 
 
+####-------Comparison of biological paramaters among years-------#####
+
+growth_by_year <-
+  # lesa_kvarnir(mar) %>% 
+  # filter(tegund==Species, !is.na(aldur) & !is.na(lengd), aldur <=25) %>% 
+  # left_join(lesa_stodvar(mar)) %>% 
+  # mutate(sampling_type = ifelse(synaflokkur==30, 'Spring survey',
+  #                                   ifelse(synaflokkur==35, 'Autumn survey', 'Commercial'))) %>% 
+  # rename(Length = lengd, Age = aldur) %>%
+  collect(n=Inf) %>% 
+  ggplot(aes(Age, Length, group = as.factor(ar), color = as.factor(ar))) + 
+  #geom_jitter(size=0.4) + 
+  geom_smooth(k = 2) + 
+  facet_wrap(~sampling_type)
 
 
 
