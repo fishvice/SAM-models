@@ -1,5 +1,5 @@
 
-for(Species in c(19)){     # Select a species: 19 - GSS, 9 - wolffish, 2 - haddock
+for(Species in c(19,9,2)){     # Select a species: 19 - GSS, 9 - wolffish, 2 - haddock
   
   tyr <- 2018                    # set last year of data input
 
